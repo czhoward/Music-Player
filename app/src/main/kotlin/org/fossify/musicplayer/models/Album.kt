@@ -22,6 +22,8 @@ data class Album(
     @ColumnInfo(name = "track_cnt") var trackCnt: Int,
     @ColumnInfo(name = "artist_id") var artistId: Long,
     @ColumnInfo(name = "date_added") var dateAdded: Int,
+    @ColumnInfo(name = "album_artist") val albumArtist: String = "",
+    @ColumnInfo(name = "is_compilation") val isCompilation: Boolean = false,
 ) : ListItem() {
     companion object {
         fun getComparator(sorting: Int) = Comparator<Album> { first, second ->
