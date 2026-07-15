@@ -201,7 +201,7 @@ class TracksActivity : SimpleMusicActivity() {
                     val albumTracks = audioHelper.getAlbumTracks(album.id)
                     tracks.addAll(albumTracks)
 
-                    val header = AlbumHeader(album.id, album.title, album.coverArt, album.year, tracks.size, tracks.sumOf { it.duration }, album.artist)
+                    val header = AlbumHeader(album.id, album.title, album.coverArt, album.year, tracks.size, tracks.sumOf { it.duration }, album.artist, album.albumArtist, album.isCompilation)
                     listItems.add(header)
                     listItems.addAll(tracks)
                 }
