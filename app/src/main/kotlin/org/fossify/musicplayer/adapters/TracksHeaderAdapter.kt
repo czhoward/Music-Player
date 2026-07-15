@@ -146,7 +146,7 @@ class TracksHeaderAdapter(activity: SimpleActivity, items: ArrayList<ListItem>, 
     private fun setupHeader(view: View, header: AlbumHeader) {
         ItemAlbumHeaderBinding.bind(view).apply {
             albumTitle.text = header.title
-            albumArtist.text = header.artist
+            albumArtist.text = if (header.albumArtist.isNotEmpty()) header.albumArtist else header.artist
 
             val tracks = resources.getQuantityString(R.plurals.tracks_plural, header.trackCnt, header.trackCnt)
             var year = ""
