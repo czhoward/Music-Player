@@ -11,7 +11,6 @@ import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import org.fossify.commons.extensions.hasPermission
-import org.fossify.commons.extensions.showErrorToast
 import org.fossify.musicplayer.extensions.isReallyPlaying
 import org.fossify.musicplayer.extensions.nextMediaItem
 import org.fossify.musicplayer.extensions.runOnPlayerThread
@@ -95,8 +94,11 @@ class PlaybackService : MediaLibraryService(), MediaSessionService.Listener {
      * background.
      */
     override fun onForegroundServiceStartNotAllowedException() {
-        showErrorToast(getString(org.fossify.commons.R.string.unknown_error_occurred))
-        // todo: show a notification instead.
+        val notificationHelper = NotificationHelper.createInstance(this)
+        notificationHelper.notify(
+            NotificationHelper.NOTIFICATION_ID,
+            notificationHelper.createPlaybackStartBlockedNotification()
+        )
     }
 
     companion object {

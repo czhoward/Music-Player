@@ -20,27 +20,12 @@ class NotificationHelper(private val context: Context) {
     private var notificationManager = context.notificationManager
 
     fun createNoPermissionNotification(): Notification {
-        return NotificationCompat.Builder(context, NOTIFICATION_CHANNEL)
-            .setContentTitle(context.getString(org.fossify.commons.R.string.no_storage_permissions))
-            .setSmallIcon(R.drawable.ic_headset_small)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setContentIntent(getContentIntent())
-            .setChannelId(NOTIFICATION_CHANNEL)
-            .setCategory(Notification.CATEGORY_PROGRESS)
-            .build()
+        return createBaseNotification(context.getString(org.fossify.commons.R.string.no_storage_permissions)).build()
     }
 
     fun createMediaScannerNotification(contentText: String, progress: Int, max: Int): Notification {
         val title = context.getString(org.fossify.commons.R.string.scanning)
-        return NotificationCompat.Builder(context, NOTIFICATION_CHANNEL)
-            .setContentTitle(title)
-            .setSmallIcon(R.drawable.ic_headset_small)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setPriority(NotificationCompat.PRIORITY_MAX)
-            .setContentIntent(getContentIntent())
-            .setChannelId(NOTIFICATION_CHANNEL)
-            .setCategory(Notification.CATEGORY_PROGRESS)
+        return createBaseNotification(title)
             .setOngoing(true)
             .setProgress(max, progress, progress == 0)
             .apply {
@@ -50,9 +35,24 @@ class NotificationHelper(private val context: Context) {
             }.build()
     }
 
+    fun createPlaybackStartBlockedNotification(): Notification {
+        return createBaseNotification(context.getString(org.fossify.commons.R.string.unknown_error_occurred)).build()
+    }
+
     fun notify(id: Int, notification: Notification) = notificationManager.notify(id, notification)
 
     fun cancel(id: Int) = notificationManager.cancel(id)
+
+    private fun createBaseNotification(title: String): NotificationCompat.Builder {
+        return NotificationCompat.Builder(context, NOTIFICATION_CHANNEL)
+            .setContentTitle(title)
+            .setSmallIcon(R.drawable.ic_headset_small)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setContentIntent(getContentIntent())
+            .setChannelId(NOTIFICATION_CHANNEL)
+            .setCategory(Notification.CATEGORY_PROGRESS)
+    }
 
     private fun getContentIntent(): PendingIntent {
         val contentIntent = Intent(context, MainActivity::class.java)

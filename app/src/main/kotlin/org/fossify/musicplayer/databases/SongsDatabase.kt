@@ -8,7 +8,6 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import org.fossify.musicplayer.interfaces.*
 import org.fossify.musicplayer.models.*
-import org.fossify.musicplayer.objects.MyExecutor
 
 @Database(entities = [Track::class, Playlist::class, QueueItem::class, Artist::class, Album::class, Genre::class], version = 15)
 abstract class SongsDatabase : RoomDatabase() {
@@ -33,7 +32,6 @@ abstract class SongsDatabase : RoomDatabase() {
                 synchronized(SongsDatabase::class) {
                     if (db == null) {
                         db = Room.databaseBuilder(context.applicationContext, SongsDatabase::class.java, "songs.db")
-                            .setQueryExecutor(MyExecutor.myExecutor)
                             .addMigrations(MIGRATION_1_2)
                             .addMigrations(MIGRATION_2_3)
                             .addMigrations(MIGRATION_3_4)
