@@ -8,30 +8,28 @@ import androidx.media3.common.Player.Listener
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
-import com.google.common.util.concurrent.MoreExecutors
+import org.fossify.musicplayer.extensions.addListenerWithResult
 import org.fossify.musicplayer.extensions.getOrNull
 import org.fossify.musicplayer.extensions.runOnPlayerThread
 import org.fossify.musicplayer.playback.PlaybackService
-import java.util.concurrent.Executors
 
 class SimpleMediaController(val context: Application) {
-    private val executorService by lazy {
-        MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor())
-    }
-
     private lateinit var controllerFuture: ListenableFuture<MediaController>
     private var controller: MediaController? = null
 
     @Synchronized
     fun createControllerAsync() {
-        controllerFuture = MediaController
+        val future = MediaController
             .Builder(context, SessionToken(context, ComponentName(context, PlaybackService::class.java)))
             .setApplicationLooper(Looper.getMainLooper())
             .buildAsync()
+        controllerFuture = future
 
-        controllerFuture.addListener({
-            controller = getControllerSync()
-        }, MoreExecutors.directExecutor())
+        future.addListenerWithResult { acquiredController ->
+            if (controllerFuture === future) {
+                controller = acquiredController
+            }
+        }
     }
 
     private fun getControllerSync() = controllerFuture.getOrNull()
@@ -40,24 +38,27 @@ class SimpleMediaController(val context: Application) {
         return if (!::controllerFuture.isInitialized) {
             return true
         } else {
-            controllerFuture.isCancelled || controllerFuture.isDone && getControllerSync()?.isConnected == false
+            controllerFuture.isCancelled || controllerFuture.isDone && getControllerSync()?.isConnected != true
         }
     }
 
-    private fun acquireController(callback: (() -> Unit)? = null) {
-        executorService.execute {
-            if (shouldCreateNewController()) {
-                createControllerAsync()
-            } else {
-                controller = getControllerSync()
-            }
-
-            callback?.invoke()
+    @Synchronized
+    private fun acquireController(callback: (MediaController) -> Unit) {
+        if (shouldCreateNewController()) {
+            createControllerAsync()
         }
+
+        val future = controllerFuture
+        future.addListenerWithResult { acquiredController ->
+            acquiredController?.takeIf { it.isConnected }?.let(callback)
+            }
     }
 
     fun releaseController() {
-        MediaController.releaseFuture(controllerFuture)
+        if (::controllerFuture.isInitialized) {
+            MediaController.releaseFuture(controllerFuture)
+            controller = null
+        }
     }
 
     fun withController(callback: MediaController.() -> Unit) {
@@ -65,9 +66,7 @@ class SimpleMediaController(val context: Application) {
         if (controller != null && controller.isConnected) {
             controller.runOnPlayerThread(callback)
         } else {
-            acquireController {
-                getControllerSync()?.runOnPlayerThread(callback)
-            }
+            acquireController { it.runOnPlayerThread(callback) }
         }
     }
 

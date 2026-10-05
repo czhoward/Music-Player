@@ -23,6 +23,7 @@ media3 = "1.10.1"
 room = "2.8.4"
 #Testing
 junit = "4.13.2"
+robolectric = "4.14.1"
 #Fossify
 commons = "6.1.6"
 #Gradle
@@ -58,6 +59,7 @@ lottie = { module = "com.airbnb.android:lottie", version.ref = "lottie" }
 autofittextview = { module = "me.grantland:autofittextview", version.ref = "autofittextview" }
 m3u-parser = { module = "com.github.bjoernpetersen:m3u-parser", version.ref = "m3uParser" }
 junit = { module = "junit:junit", version.ref = "junit" }
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 [bundles]
 room = [
     "androidx-room-ktx",

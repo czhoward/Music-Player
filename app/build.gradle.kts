@@ -110,6 +110,10 @@ android {
         generateLocaleConfig = true
     }
 
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+
     tasks.withType<KotlinCompile> {
         compilerOptions.jvmTarget.set(
             JvmTarget.fromTarget(project.libs.versions.app.build.kotlinJVMTarget.get())
@@ -142,6 +146,7 @@ detekt {
 
 dependencies {
     testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
 
     implementation(libs.fossify.commons)
     implementation(libs.eventbus)
