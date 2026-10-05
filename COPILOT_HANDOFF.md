@@ -13,41 +13,39 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Removed the custom Room query executor from `SongsDatabase` and deleted the now-unused `MyExecutor` singleton.
 - Added JUnit coverage for moving queued list items before earlier and later targets in `MutableListTest`.
 - Added a Robolectric test for `MediaItemProvider` root construction and its pre-reload readiness contract.
+- Fixed `MediaItemProvider.reload()` so a build failure remains `STATE_ERROR` instead of being overwritten by `STATE_INITIALIZED`.
+- Added Robolectric coverage for a successful empty-library reload and `PlaybackService.onCreate()` initialization.
 - Replaced `SimpleMediaController`'s single-thread executor and blocking controller-future reads with completion listeners; callbacks now wait for an available connected controller, and releasing before first acquisition is safe.
 - Added `addListenerWithResult` and a regression test proving callbacks run only after their future completes.
 - Reformatted a long `AlbumHeader` constructor call in `TracksActivity` to satisfy Detekt.
 - Compiled the `coreDebug`, `fossDebug`, and `gplayDebug` variants successfully.
-- Ran lint successfully for all three debug variants and Detekt successfully across 101 Kotlin files.
-- Ran the core JVM unit tests successfully: 4 tests, 0 failures.
+- Ran lint successfully for all three debug variants and Detekt successfully across 102 Kotlin files.
+- Ran the core JVM/Robolectric unit tests successfully: 6 tests, 0 failures.
 - Verified the final patch with `git diff --check`.
 
 ## Current Working Tree
 
 Current uncommitted work on `main`:
 
-- `app/src/main/kotlin/org/fossify/musicplayer/extensions/Future.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/helpers/SimpleMediaController.kt`
-- `app/src/test/kotlin/org/fossify/musicplayer/extensions/MutableListTest.kt`
-- `app/src/test/kotlin/org/fossify/musicplayer/extensions/FutureTest.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/playback/library/MediaItemProvider.kt`
 - `app/src/test/kotlin/org/fossify/musicplayer/playback/library/MediaItemProviderTest.kt`
-- `app/build.gradle.kts`
-- `gradle/libs.versions.toml`
+- `app/src/test/kotlin/org/fossify/musicplayer/playback/PlaybackServiceTest.kt`
 - `COPILOT_HANDOFF.md`
 
-The queue-order tests, Robolectric setup, and provider root test are in the current worktree.
+The queue-order tests, Robolectric setup, provider reload test, and service startup test are in the current worktree.
 
 ## Environment and Validation Notes
 
 - Java 17 is available at `/usr/lib/jvm/java-17-openjdk-amd64`.
 - `ANDROID_HOME` is `/home/vagrant/android-sdk`; API 36 and Build-Tools 36 were installed there. `local.properties` is intentionally absent.
 - The host now has 3.8 GiB RAM (about 2.8 GiB available at last check). Earlier combined builds OOM-killed daemons when the host had 1.9 GiB. Serial builds with a 1 GiB Gradle heap and Kotlin compilation in-process have passed; the repository default heap is 8 GiB.
-- Lint passes with the existing baseline, which suppresses 6 errors and 194 warnings; each flavor also reports 13-15 warnings. Four lint baseline entries no longer match current findings and should be reviewed separately.
-- The tests cover queue list moves, future completion callbacks, and provider root construction before reload. Actual provider reload/Room-MediaStore loading and playback-service startup are not yet covered.
+- Lint passes with the existing baseline, which suppresses 6 errors and 194 warnings; each flavor also reports 14-16 warnings. Four lint baseline entries no longer match current findings and should be reviewed separately.
+- The tests cover queue list moves, future completion callbacks, provider root construction and successful empty-library reload, and service `onCreate()` initialization. A populated MediaStore scan and Android system-level foreground-service behavior remain untested.
 
 ## Recommended Next Steps
 
-1. Extend the Robolectric provider test through `reload()` with controlled empty or fake library data, then cover playback-service startup.
-2. Add player-level queue tests beyond the list-move primitive.
+1. Add player-level queue tests beyond the list-move primitive.
+2. Cover populated MediaStore library loading and Android system-level foreground-service behavior.
 3. Replace scattered background-thread helpers with structured concurrency where practical; controller acquisition no longer uses a dedicated executor.
 4. Audit `EventBus` usage and decide which flows should move to a state-holder.
 5. Review deprecated Media3 workarounds, especially shuffle-order behavior in `SimpleMusicPlayer`.
@@ -64,7 +62,7 @@ The queue-order tests, Robolectric setup, and provider root test are in the curr
 - [x] Run lint for all three debug variants and Detekt.
 - [x] Add initial queue-order primitive tests.
 - [x] Add a Robolectric test for provider root construction and pre-reload readiness.
-- [ ] Cover provider reload and playback-service startup.
+- [x] Cover successful empty-library reload and playback-service `onCreate()` initialization.
 - [ ] Add player-level queue behavior tests.
 
 ### P1: Remove Legacy Surfaces

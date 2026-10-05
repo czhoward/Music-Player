@@ -180,11 +180,10 @@ internal class MediaItemProvider(private val context: Context) {
                 buildAlbums()
                 buildTracks()
                 buildGenres()
+                state = STATE_INITIALIZED
             } catch (e: Exception) {
                 state = STATE_ERROR
             }
-
-            state = STATE_INITIALIZED
         }
     }
 
