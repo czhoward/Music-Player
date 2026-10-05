@@ -141,6 +141,8 @@ detekt {
 }
 
 dependencies {
+    testImplementation(libs.junit)
+
     implementation(libs.fossify.commons)
     implementation(libs.eventbus)
     implementation(libs.androidx.media)
