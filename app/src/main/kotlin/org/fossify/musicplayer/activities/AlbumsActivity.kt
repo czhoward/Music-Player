@@ -2,12 +2,15 @@ package org.fossify.musicplayer.activities
 
 import android.content.Intent
 import android.os.Bundle
+import androidx.lifecycle.lifecycleScope
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.fossify.commons.dialogs.PermissionRequiredDialog
 import org.fossify.commons.extensions.*
 import org.fossify.commons.helpers.NavigationIcon
-import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.musicplayer.R
 import org.fossify.musicplayer.adapters.AlbumsTracksAdapter
 import org.fossify.musicplayer.databinding.ActivityAlbumsBinding
@@ -34,14 +37,17 @@ class AlbumsActivity : SimpleMusicActivity() {
         val artist = Gson().fromJson<Artist>(intent.getStringExtra(ARTIST), artistType)
         binding.albumsToolbar.title = artist.title
 
-        ensureBackgroundThread {
-            val albums = audioHelper.getArtistAlbums(artist.id)
+        lifecycleScope.launch {
+            val (albums, albumTracks) = withContext(Dispatchers.IO) {
+                val albums = audioHelper.getArtistAlbums(artist.id)
+                albums to audioHelper.getAlbumTracks(albums)
+            }
+
             val listItems = ArrayList<ListItem>()
             val albumsSectionLabel = resources.getQuantityString(R.plurals.albums_plural, albums.size, albums.size)
             listItems.add(AlbumSection(albumsSectionLabel))
             listItems.addAll(albums)
 
-            val albumTracks = audioHelper.getAlbumTracks(albums)
             val trackFullDuration = albumTracks.sumOf { it.duration }
 
             var tracksSectionLabel = resources.getQuantityString(R.plurals.tracks_plural, albumTracks.size, albumTracks.size)
@@ -49,35 +55,33 @@ class AlbumsActivity : SimpleMusicActivity() {
             listItems.add(AlbumSection(tracksSectionLabel))
             listItems.addAll(albumTracks)
 
-            runOnUiThread {
-                AlbumsTracksAdapter(this, listItems, binding.albumsList) {
-                    hideKeyboard()
-                    if (it is Album) {
-                        Intent(this, TracksActivity::class.java).apply {
-                            putExtra(ALBUM, Gson().toJson(it))
-                            startActivity(this)
-                        }
-                    } else {
-                        handleNotificationPermission { granted ->
-                            if (granted) {
-                                val startIndex = albumTracks.indexOf(it as Track)
-                                prepareAndPlay(albumTracks, startIndex)
-                            } else {
-                                PermissionRequiredDialog(
-                                    this,
-                                    org.fossify.commons.R.string.allow_notifications_music_player,
-                                    { openNotificationSettings() }
-                                )
-                            }
+            AlbumsTracksAdapter(this@AlbumsActivity, listItems, binding.albumsList) {
+                hideKeyboard()
+                if (it is Album) {
+                    Intent(this@AlbumsActivity, TracksActivity::class.java).apply {
+                        putExtra(ALBUM, Gson().toJson(it))
+                        startActivity(this)
+                    }
+                } else {
+                    handleNotificationPermission { granted ->
+                        if (granted) {
+                            val startIndex = albumTracks.indexOf(it as Track)
+                            prepareAndPlay(albumTracks, startIndex)
+                        } else {
+                            PermissionRequiredDialog(
+                                this@AlbumsActivity,
+                                org.fossify.commons.R.string.allow_notifications_music_player,
+                                { openNotificationSettings() }
+                            )
                         }
                     }
-                }.apply {
-                    binding.albumsList.adapter = this
                 }
+            }.apply {
+                binding.albumsList.adapter = this
+            }
 
-                if (areSystemAnimationsEnabled) {
-                    binding.albumsList.scheduleLayoutAnimation()
-                }
+            if (areSystemAnimationsEnabled) {
+                binding.albumsList.scheduleLayoutAnimation()
             }
         }
 

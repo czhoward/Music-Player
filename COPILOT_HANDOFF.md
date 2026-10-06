@@ -21,6 +21,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Added player-level Robolectric coverage for inserting a new next item, moving an existing queued item, and preserving next-item behavior under a deterministic shuffle order.
 - Replaced `SimpleMediaController`'s single-thread executor and blocking controller-future reads with completion listeners; callbacks now wait for an available connected controller, and releasing before first acquisition is safe.
 - Added `addListenerWithResult` and a regression test proving callbacks run only after their future completes.
+- Converted the artist-album load in `AlbumsActivity` from `ensureBackgroundThread` plus `runOnUiThread` to `lifecycleScope` and `Dispatchers.IO`, so work is canceled with the Activity.
 - Reformatted a long `AlbumHeader` constructor call in `TracksActivity` to satisfy Detekt.
 - Compiled the `coreDebug`, `fossDebug`, and `gplayDebug` variants successfully.
 - Ran lint successfully for all three debug variants and Detekt successfully across 104 Kotlin files.
@@ -31,16 +32,9 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 
 Current uncommitted work on `main`:
 
-- `app/build.gradle.kts`
-- `gradle/libs.versions.toml`
-- `app/src/main/kotlin/org/fossify/musicplayer/activities/MainActivity.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/models/Events.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/playback/SleepTimer.kt`
-- `app/src/test/kotlin/org/fossify/musicplayer/playback/SleepTimerStateTest.kt`
-- `app/src/test/kotlin/org/fossify/musicplayer/playback/player/SimpleMusicPlayerTest.kt`
-- `COPILOT_HANDOFF.md`
+- `app/src/main/kotlin/org/fossify/musicplayer/activities/AlbumsActivity.kt`
 
-Provider coroutine lifecycle, reload, service callback, and initial queue integration are already in the tree; timer state conversion and regression coverage are the current uncommitted changes.
+Provider coroutine lifecycle, queue tests, sleep-timer StateFlow, and their supporting dependencies are already in the tree; the `AlbumsActivity` background-load conversion is the current uncommitted change.
 
 ## Environment and Validation Notes
 
@@ -53,7 +47,7 @@ Provider coroutine lifecycle, reload, service callback, and initial queue integr
 ## Recommended Next Steps
 
 1. Add an instrumentation or controlled MediaStore scan test and cover Android system-level foreground-service behavior.
-2. Replace scattered background-thread helpers with structured concurrency where practical; controller acquisition no longer uses a dedicated executor.
+2. Continue replacing remaining `ensureBackgroundThread` uses with lifecycle-owned structured concurrency where practical; `AlbumsActivity` is the first converted Activity path.
 3. Review whether any remaining one-shot EventBus invalidations need a state-holder; recurring sleep-timer state has already moved to `StateFlow`.
 4. Review remaining deprecated Media3 workarounds; the current shuffle-order next-item behavior is regression-covered but still depends on the deprecated API.
 5. Decide the new minimum supported Android version, then review storage permissions and manifest compatibility against that floor.
@@ -80,6 +74,7 @@ Provider coroutine lifecycle, reload, service callback, and initial queue integr
 - [x] Move recurring sleep-timer updates to lifecycle-collected state while retaining expiry as a one-shot event.
 - [x] Audit EventBus flows; keep one-shot refresh events and migrate recurring timer state.
 - [x] Add deterministic regression coverage for the current shuffle-order next-item workaround.
+- [x] Convert `AlbumsActivity`'s artist-album loading to lifecycle-owned IO work.
 - Replace scattered background-thread helpers with structured concurrency where practical.
 - Audit `EventBus` usage and decide whether each path should move to a state-holder or be kept behind a smaller boundary.
 - Review any deprecated Media3 workarounds, especially shuffle-order behavior in `SimpleMusicPlayer`.
