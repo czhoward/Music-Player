@@ -15,14 +15,16 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Added a Robolectric test for `MediaItemProvider` root construction and its pre-reload readiness contract.
 - Fixed `MediaItemProvider.reload()` so a build failure remains `STATE_ERROR` instead of being overwritten by `STATE_INITIALIZED`.
 - Replaced `MediaItemProvider`'s private executor with a serial IO coroutine scope; `PlaybackService.onDestroy()` closes the scope while allowing launched work to drain.
+- Moved periodic sleep-timer seconds from EventBus to lifecycle-collected `StateFlow`; kept expiry as a one-shot EventBus event to avoid replaying a stale finish signal.
+- Audited EventBus use: playlist, track, and fragment refreshes remain one-shot invalidations; recurring timer state is now modeled explicitly.
 - Added Robolectric coverage for empty and seeded-Room library reloads, `PlaybackService.onCreate()` initialization, and fallback notification delivery when foreground start is blocked.
-- Added player-level Robolectric coverage for inserting a new next item and moving an existing queued item to the next position.
+- Added player-level Robolectric coverage for inserting a new next item, moving an existing queued item, and preserving next-item behavior under a deterministic shuffle order.
 - Replaced `SimpleMediaController`'s single-thread executor and blocking controller-future reads with completion listeners; callbacks now wait for an available connected controller, and releasing before first acquisition is safe.
 - Added `addListenerWithResult` and a regression test proving callbacks run only after their future completes.
 - Reformatted a long `AlbumHeader` constructor call in `TracksActivity` to satisfy Detekt.
 - Compiled the `coreDebug`, `fossDebug`, and `gplayDebug` variants successfully.
-- Ran lint successfully for all three debug variants and Detekt successfully across 103 Kotlin files.
-- Ran the core JVM/Robolectric unit tests successfully: 10 tests, 0 failures.
+- Ran lint successfully for all three debug variants and Detekt successfully across 104 Kotlin files.
+- Ran the core JVM/Robolectric unit tests successfully: 12 tests, 0 failures.
 - Verified the final patch with `git diff --check`.
 
 ## Current Working Tree
@@ -31,29 +33,29 @@ Current uncommitted work on `main`:
 
 - `app/build.gradle.kts`
 - `gradle/libs.versions.toml`
-- `app/src/main/kotlin/org/fossify/musicplayer/playback/PlaybackService.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/playback/library/MediaItemProvider.kt`
-- `app/src/test/kotlin/org/fossify/musicplayer/playback/library/MediaItemProviderTest.kt`
-- `app/src/test/kotlin/org/fossify/musicplayer/playback/PlaybackServiceTest.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/activities/MainActivity.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/models/Events.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/playback/SleepTimer.kt`
+- `app/src/test/kotlin/org/fossify/musicplayer/playback/SleepTimerStateTest.kt`
 - `app/src/test/kotlin/org/fossify/musicplayer/playback/player/SimpleMusicPlayerTest.kt`
 - `COPILOT_HANDOFF.md`
 
-Queue-order primitive tests and Robolectric setup are already in the tree; provider coroutine lifecycle, provider reload, service callback, and player-level queue integration changes are current uncommitted work.
+Provider coroutine lifecycle, reload, service callback, and initial queue integration are already in the tree; timer state conversion and regression coverage are the current uncommitted changes.
 
 ## Environment and Validation Notes
 
 - Java 17 is available at `/usr/lib/jvm/java-17-openjdk-amd64`.
 - `ANDROID_HOME` is `/home/vagrant/android-sdk`; API 36 and Build-Tools 36 were installed there. `local.properties` is intentionally absent.
 - The host now has 3.8 GiB RAM (about 2.8 GiB available at last check). Earlier combined builds OOM-killed daemons when the host had 1.9 GiB. Serial builds with a 1 GiB Gradle heap and Kotlin compilation in-process have passed; the repository default heap is 8 GiB.
-- Lint passes with the existing baseline, which suppresses 6 errors and 194 warnings; core reports 15 warnings and FOSS/GPlay report 17 each. Four lint baseline entries no longer match current findings and should be reviewed separately.
-- The tests cover list movement, player-level next-item insertion/reordering, future completion callbacks, provider root construction and empty/seeded-Room reloads, service `onCreate()` initialization, and fallback notification delivery. A real populated MediaStore scan and Android OS enforcement of foreground-service restrictions remain untested.
+- Lint passes with the existing baseline, which suppresses 6 errors and 194 warnings; core reports 16 warnings and FOSS/GPlay report 18 each. Four lint baseline entries no longer match current findings and should be reviewed separately.
+- The tests cover list movement, player-level next-item insertion/reordering including shuffle order, future completion callbacks, sleep-timer state, provider root construction and empty/seeded-Room reloads, service `onCreate()` initialization, and fallback notification delivery. A real populated MediaStore scan and Android OS enforcement of foreground-service restrictions remain untested.
 
 ## Recommended Next Steps
 
 1. Add an instrumentation or controlled MediaStore scan test and cover Android system-level foreground-service behavior.
 2. Replace scattered background-thread helpers with structured concurrency where practical; controller acquisition no longer uses a dedicated executor.
-3. Audit `EventBus` usage and decide which flows should move to a state-holder.
-4. Review deprecated Media3 workarounds, especially shuffle-order behavior in `SimpleMusicPlayer`.
+3. Review whether any remaining one-shot EventBus invalidations need a state-holder; recurring sleep-timer state has already moved to `StateFlow`.
+4. Review remaining deprecated Media3 workarounds; the current shuffle-order next-item behavior is regression-covered but still depends on the deprecated API.
 5. Decide the new minimum supported Android version, then review storage permissions and manifest compatibility against that floor.
 6. Review the four stale lint-baseline entries and existing lint warnings without broadening into unrelated dependency updates.
 7. Evaluate stale libraries and UI helpers, including `autofittextview`, `EventBus`, and `jAudioTagger`.
@@ -75,6 +77,9 @@ Queue-order primitive tests and Robolectric setup are already in the tree; provi
 
 - [x] Revisit `SimpleMediaController` and remove its dedicated controller-acquisition executor.
 - [x] Replace the media provider's executor with service-lifecycle-scoped coroutine work.
+- [x] Move recurring sleep-timer updates to lifecycle-collected state while retaining expiry as a one-shot event.
+- [x] Audit EventBus flows; keep one-shot refresh events and migrate recurring timer state.
+- [x] Add deterministic regression coverage for the current shuffle-order next-item workaround.
 - Replace scattered background-thread helpers with structured concurrency where practical.
 - Audit `EventBus` usage and decide whether each path should move to a state-holder or be kept behind a smaller boundary.
 - Review any deprecated Media3 workarounds, especially shuffle-order behavior in `SimpleMusicPlayer`.

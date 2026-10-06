@@ -8,7 +8,12 @@ import android.media.AudioManager
 import android.net.Uri
 import android.os.Bundle
 import android.widget.Toast
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.viewpager.widget.ViewPager
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 import me.grantland.widget.AutofitHelper
 import org.fossify.musicplayer.BuildConfig
 import org.fossify.commons.databinding.BottomTablayoutItemBinding
@@ -30,6 +35,7 @@ import org.fossify.musicplayer.helpers.*
 import org.fossify.musicplayer.helpers.M3uImporter.ImportResult
 import org.fossify.musicplayer.models.Events
 import org.fossify.musicplayer.playback.CustomCommands
+import org.fossify.musicplayer.playback.SleepTimerState
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
@@ -190,6 +196,7 @@ class MainActivity : SimpleMusicActivity() {
     private fun initActivity() {
         bus = EventBus.getDefault()
         bus!!.register(this)
+        observeSleepTimer()
         // trigger a scan first so that the fragments will accurately reflect the scanning state
         mediaScanner.scan()
         initFragments()
@@ -498,13 +505,25 @@ class MainActivity : SimpleMusicActivity() {
 
     private fun getCurrentFragment() = getAdapter()?.getCurrentFragment()
 
+    @Suppress("UnusedParameter")
     @Subscribe(threadMode = ThreadMode.MAIN)
-    fun sleepTimerChanged(event: Events.SleepTimerChanged) {
-        binding.sleepTimerValue.text = event.seconds.getFormattedDuration()
-        binding.sleepTimerHolder.beVisible()
+    fun sleepTimerExpired(event: Events.SleepTimerExpired) {
+        finish()
+    }
 
-        if (event.seconds == 0) {
-            finish()
+    private fun observeSleepTimer() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                SleepTimerState.seconds.collect { seconds ->
+                    when (seconds) {
+                        null -> binding.sleepTimerHolder.beGone()
+                        else -> {
+                            binding.sleepTimerValue.text = seconds.getFormattedDuration()
+                            binding.sleepTimerHolder.beVisible()
+                        }
+                    }
+                }
+            }
         }
     }
 
