@@ -341,21 +341,18 @@ class MainActivity : SimpleMusicActivity() {
     }
 
     private fun createPlaylistFrom(path: String) {
-        ensureBackgroundThread {
-            getFolderTracks(path, true) { tracks ->
-                runOnUiThread {
-                    NewPlaylistDialog(this) { playlistId ->
-                        tracks.forEach {
-                            it.playListId = playlistId
-                        }
+        lifecycleScope.launch {
+            val tracks = withContext(Dispatchers.IO) { awaitFolderTracks(path, true) }
+            NewPlaylistDialog(this@MainActivity) { playlistId ->
+                tracks.forEach {
+                    it.playListId = playlistId
+                }
 
-                        lifecycleScope.launch {
-                            withContext(Dispatchers.IO) {
-                                audioHelper.insertTracks(tracks)
-                            }
-                            EventBus.getDefault().post(Events.PlaylistsUpdated())
-                        }
+                lifecycleScope.launch {
+                    withContext(Dispatchers.IO) {
+                        audioHelper.insertTracks(tracks)
                     }
+                    EventBus.getDefault().post(Events.PlaylistsUpdated())
                 }
             }
         }

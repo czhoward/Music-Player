@@ -20,6 +20,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Added Robolectric coverage for empty and seeded-Room library reloads, `PlaybackService.onCreate()` initialization, and fallback notification delivery when foreground start is blocked.
 - Added player-level Robolectric coverage for inserting a new next item, moving an existing queued item, and preserving next-item behavior under a deterministic shuffle order.
 - Converted source-track loading in `TracksActivity` to lifecycle-owned IO coroutine work, keeping adapter updates and placeholder state on the main dispatcher.
+- Converted the direct Room-backed loads in the Albums, Artists, Folders, Genres, and Playlists pager views to the hosting Activity's lifecycle scope with IO queries and main-thread rendering.
 - Converted `SimpleControllerActivity.refreshQueueAndTracks()` to fetch queue tracks in `Dispatchers.IO` and resume player updates from the Activity lifecycle scope.
 - Replaced `SimpleMediaController`'s single-thread executor and blocking controller-future reads with completion listeners; callbacks now wait for an available connected controller, and releasing before first acquisition is safe.
 - Added `addListenerWithResult` and a regression test proving callbacks run only after their future completes.
@@ -29,10 +30,11 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Converted `SimpleControllerActivity.refreshQueueAndTracks()` to fetch queue tracks in `Dispatchers.IO` and resume player updates from the Activity lifecycle scope.
 - Converted `MainActivity`'s M3U parsing and playlist database insert to lifecycle-owned IO work, then handles the result and fragment refresh on main.
 - Converted `TracksFragment`'s Room-backed track query to the owning Activity's lifecycle scope, keeping custom-view updates on main.
+- Added `awaitFolderTracks()` to bridge the callback-based folder scanner to suspension; `MainActivity` and `TracksActivity` now await folder results in lifecycle scopes and perform playlist writes/refresh queries on IO.
 - Reformatted a long `AlbumHeader` constructor call in `TracksActivity` to satisfy Detekt.
 - Compiled the `coreDebug`, `fossDebug`, and `gplayDebug` variants successfully.
-- Ran lint successfully for all three debug variants and Detekt successfully across 104 Kotlin files.
-- Ran the core JVM/Robolectric unit tests successfully: 12 tests, 0 failures.
+- Ran lint successfully for all three debug variants and Detekt successfully across 105 Kotlin files.
+- Ran the core JVM/Robolectric unit tests successfully: 13 tests, 0 failures.
 - Verified the final patch with `git diff --check`.
 
 ## Current Working Tree
@@ -40,10 +42,10 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 Current uncommitted work on `main`:
 
 - `app/src/main/kotlin/org/fossify/musicplayer/activities/MainActivity.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/fragments/TracksFragment.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/activities/TracksActivity.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/extensions/Activity.kt`
+- `app/src/test/kotlin/org/fossify/musicplayer/extensions/FolderTracksAwaitTest.kt`
 - `COPILOT_HANDOFF.md`
-
-Provider coroutine lifecycle, queue tests, sleep-timer StateFlow, and the `AlbumsActivity`, `TracksActivity`, `QueueActivity`, and `SimpleControllerActivity` conversions are already in the tree; `MainActivity` playlist import and `TracksFragment` load are the current uncommitted code changes.
 
 ## Environment and Validation Notes
 
@@ -51,12 +53,12 @@ Provider coroutine lifecycle, queue tests, sleep-timer StateFlow, and the `Album
 - `ANDROID_HOME` is `/home/vagrant/android-sdk`; API 36 and Build-Tools 36 were installed there. `local.properties` is intentionally absent.
 - The host now has 3.8 GiB RAM (about 2.8 GiB available at last check). Earlier combined builds OOM-killed daemons when the host had 1.9 GiB. Serial builds with a 1 GiB Gradle heap and Kotlin compilation in-process have passed; the repository default heap is 8 GiB.
 - Lint passes with the existing baseline, which suppresses 6 errors and 194 warnings; core reports 16 warnings and FOSS/GPlay report 18 each. Four lint baseline entries no longer match current findings and should be reviewed separately.
-- The tests cover list movement, player-level next-item insertion/reordering including shuffle order, future completion callbacks, sleep-timer state, provider root construction and empty/seeded-Room reloads, service `onCreate()` initialization, and fallback notification delivery. A real populated MediaStore scan and Android OS enforcement of foreground-service restrictions remain untested.
+- The tests cover list movement, player-level next-item insertion/reordering including shuffle order, future and folder-callback completion, sleep-timer state, provider root construction and empty/seeded-Room reloads, service `onCreate()` initialization, and fallback notification delivery. A real populated MediaStore scan and Android OS enforcement of foreground-service restrictions remain untested. The folder bridge ignores callbacks after cancellation, but the external rescan itself is not cancellable.
 
 ## Recommended Next Steps
 
 1. Add an instrumentation or controlled MediaStore scan test and cover Android system-level foreground-service behavior.
-2. Continue replacing remaining `ensureBackgroundThread` uses with lifecycle-owned structured concurrency where practical; album, track, queue, controller, playlist-import, and one custom-view load paths are converted.
+2. Continue replacing remaining callback-heavy `ensureBackgroundThread` uses with lifecycle-owned structured concurrency where practical; Activity queue/import actions, direct-query pager views, and the two folder-playlist flows are converted.
 3. Review whether any remaining one-shot EventBus invalidations need a state-holder; recurring sleep-timer state has already moved to `StateFlow`.
 4. Review remaining deprecated Media3 workarounds; the current shuffle-order next-item behavior is regression-covered but still depends on the deprecated API.
 5. Decide the new minimum supported Android version, then review storage permissions and manifest compatibility against that floor.
@@ -89,6 +91,8 @@ Provider coroutine lifecycle, queue tests, sleep-timer StateFlow, and the `Album
 - [x] Convert `QueueActivity`'s queue-to-playlist Room write to lifecycle-owned IO work.
 - [x] Convert `MainActivity`'s M3U import processing to lifecycle-owned IO work.
 - [x] Convert `TracksFragment`'s Room-backed track query to the owning Activity lifecycle scope.
+- [x] Bridge folder-track callbacks to suspension and convert MainActivity/TracksActivity folder-playlist flows.
+- [x] Convert Albums, Artists, Folders, Genres, and Playlists pager queries to their hosting Activity's lifecycle scope.
 - Replace scattered background-thread helpers with structured concurrency where practical.
 - Audit `EventBus` usage and decide whether each path should move to a state-holder or be kept behind a smaller boundary.
 - Review any deprecated Media3 workarounds, especially shuffle-order behavior in `SimpleMusicPlayer`.

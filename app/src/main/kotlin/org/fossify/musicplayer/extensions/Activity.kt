@@ -3,6 +3,7 @@ package org.fossify.musicplayer.extensions
 import android.app.Activity
 import android.content.ContentUris
 import android.provider.MediaStore
+import kotlinx.coroutines.suspendCancellableCoroutine
 import org.fossify.commons.dialogs.PropertiesDialog
 import org.fossify.commons.extensions.rescanPaths
 import org.fossify.commons.extensions.sharePathsIntent
@@ -12,6 +13,7 @@ import org.fossify.musicplayer.dialogs.SelectPlaylistDialog
 import org.fossify.musicplayer.helpers.FLAG_MANUAL_CACHE
 import org.fossify.musicplayer.helpers.RoomHelper
 import org.fossify.musicplayer.models.Track
+import kotlin.coroutines.resume
 
 fun Activity.addTracksToPlaylist(tracks: List<Track>, callback: () -> Unit) {
     SelectPlaylistDialog(this) { playlistId ->
@@ -49,6 +51,15 @@ fun Activity.maybeRescanTrackPaths(tracks: List<Track>, callback: (tracks: List<
         callback(tracks)
     }
 }
+
+suspend fun Activity.awaitFolderTracks(path: String, rescanWrongPaths: Boolean): ArrayList<Track> =
+    suspendCancellableCoroutine { continuation ->
+        getFolderTracks(path, rescanWrongPaths) { tracks ->
+            if (continuation.isActive) {
+                continuation.resume(tracks)
+            }
+        }
+    }
 
 fun Activity.showTrackProperties(selectedTracks: List<Track>) {
     val selectedPaths = selectedTracks.map { track ->

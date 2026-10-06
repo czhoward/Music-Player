@@ -34,6 +34,7 @@ import org.fossify.musicplayer.databinding.ActivityTracksBinding
 import org.fossify.musicplayer.dialogs.ChangeSortingDialog
 import org.fossify.musicplayer.dialogs.ExportPlaylistDialog
 import org.fossify.musicplayer.extensions.audioHelper
+import org.fossify.musicplayer.extensions.awaitFolderTracks
 import org.fossify.musicplayer.extensions.config
 import org.fossify.musicplayer.extensions.getFolderTracks
 import org.fossify.musicplayer.extensions.getMediaStoreIdFromPath
@@ -334,15 +335,18 @@ class TracksActivity : SimpleMusicActivity() {
 
     private fun addFolderToPlaylist() {
         FilePickerDialog(this, pickFile = false, enforceStorageRestrictions = false) {
-            ensureBackgroundThread {
-                getFolderTracks(it, true) { tracks ->
+            val folderPath = it
+            lifecycleScope.launch {
+                val tracks = withContext(Dispatchers.IO) { awaitFolderTracks(folderPath, true) }
+                val playlistId = playlist!!.id
+                withContext(Dispatchers.IO) {
                     tracks.forEach {
-                        it.playListId = playlist!!.id
+                        it.playListId = playlistId
                     }
 
                     audioHelper.insertTracks(tracks)
-                    refreshPlaylist()
                 }
+                refreshPlaylist()
             }
         }
     }
@@ -367,10 +371,11 @@ class TracksActivity : SimpleMusicActivity() {
     }
 
     private fun refreshPlaylist() {
+        val playlistId = playlist?.id ?: return
         EventBus.getDefault().post(Events.PlaylistsUpdated())
 
-        val newTracks = audioHelper.getPlaylistTracks(playlist!!.id)
-        runOnUiThread {
+        lifecycleScope.launch {
+            val newTracks = withContext(Dispatchers.IO) { audioHelper.getPlaylistTracks(playlistId) }
             getTracksAdapter()?.updateItems(newTracks)
             binding.tracksPlaceholder.beVisibleIf(newTracks.isEmpty())
             binding.tracksPlaceholder2.beVisibleIf(newTracks.isEmpty())
