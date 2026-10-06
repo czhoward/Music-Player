@@ -28,6 +28,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Converted queue-to-playlist Room insertion in `QueueActivity` to lifecycle-owned IO work.
 - Converted `SimpleControllerActivity.refreshQueueAndTracks()` to fetch queue tracks in `Dispatchers.IO` and resume player updates from the Activity lifecycle scope.
 - Converted `MainActivity`'s M3U parsing and playlist database insert to lifecycle-owned IO work, then handles the result and fragment refresh on main.
+- Converted `TracksFragment`'s Room-backed track query to the owning Activity's lifecycle scope, keeping custom-view updates on main.
 - Reformatted a long `AlbumHeader` constructor call in `TracksActivity` to satisfy Detekt.
 - Compiled the `coreDebug`, `fossDebug`, and `gplayDebug` variants successfully.
 - Ran lint successfully for all three debug variants and Detekt successfully across 104 Kotlin files.
@@ -39,9 +40,10 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 Current uncommitted work on `main`:
 
 - `app/src/main/kotlin/org/fossify/musicplayer/activities/MainActivity.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/fragments/TracksFragment.kt`
 - `COPILOT_HANDOFF.md`
 
-Provider coroutine lifecycle, queue tests, sleep-timer StateFlow, and the `AlbumsActivity`, `TracksActivity`, `QueueActivity`, and `SimpleControllerActivity` conversions are already in the tree; `MainActivity` playlist import is the current uncommitted code change.
+Provider coroutine lifecycle, queue tests, sleep-timer StateFlow, and the `AlbumsActivity`, `TracksActivity`, `QueueActivity`, and `SimpleControllerActivity` conversions are already in the tree; `MainActivity` playlist import and `TracksFragment` load are the current uncommitted code changes.
 
 ## Environment and Validation Notes
 
@@ -54,7 +56,7 @@ Provider coroutine lifecycle, queue tests, sleep-timer StateFlow, and the `Album
 ## Recommended Next Steps
 
 1. Add an instrumentation or controlled MediaStore scan test and cover Android system-level foreground-service behavior.
-2. Continue replacing remaining `ensureBackgroundThread` uses with lifecycle-owned structured concurrency where practical; the album, track, queue, controller, and playlist-import paths now have converted versions.
+2. Continue replacing remaining `ensureBackgroundThread` uses with lifecycle-owned structured concurrency where practical; album, track, queue, controller, playlist-import, and one custom-view load paths are converted.
 3. Review whether any remaining one-shot EventBus invalidations need a state-holder; recurring sleep-timer state has already moved to `StateFlow`.
 4. Review remaining deprecated Media3 workarounds; the current shuffle-order next-item behavior is regression-covered but still depends on the deprecated API.
 5. Decide the new minimum supported Android version, then review storage permissions and manifest compatibility against that floor.
@@ -86,6 +88,7 @@ Provider coroutine lifecycle, queue tests, sleep-timer StateFlow, and the `Album
 - [x] Convert `SimpleControllerActivity`'s queue refresh query to lifecycle-owned IO work.
 - [x] Convert `QueueActivity`'s queue-to-playlist Room write to lifecycle-owned IO work.
 - [x] Convert `MainActivity`'s M3U import processing to lifecycle-owned IO work.
+- [x] Convert `TracksFragment`'s Room-backed track query to the owning Activity lifecycle scope.
 - Replace scattered background-thread helpers with structured concurrency where practical.
 - Audit `EventBus` usage and decide whether each path should move to a state-holder or be kept behind a smaller boundary.
 - Review any deprecated Media3 workarounds, especially shuffle-order behavior in `SimpleMusicPlayer`.

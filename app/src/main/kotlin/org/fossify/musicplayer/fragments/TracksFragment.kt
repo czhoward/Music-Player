@@ -3,10 +3,13 @@ package org.fossify.musicplayer.fragments
 import android.app.Activity
 import android.content.Context
 import android.util.AttributeSet
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.dialogs.PermissionRequiredDialog
 import org.fossify.commons.extensions.*
-import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.musicplayer.R
 import org.fossify.musicplayer.activities.SimpleActivity
 import org.fossify.musicplayer.adapters.TracksAdapter
@@ -26,50 +29,48 @@ class TracksFragment(context: Context, attributeSet: AttributeSet) : MyViewPager
     private val binding by viewBinding(FragmentTracksBinding::bind)
 
     override fun setupFragment(activity: BaseSimpleActivity) {
-        ensureBackgroundThread {
-            tracks = context.audioHelper.getAllTracks()
+        activity.lifecycleScope.launch {
+            tracks = withContext(Dispatchers.IO) { context.audioHelper.getAllTracks() }
 
             val excludedFolders = context.config.excludedFolders
             tracks = tracks.filter {
                 !excludedFolders.contains(it.path.getParentPath())
             }.toMutableList() as ArrayList<Track>
 
-            activity.runOnUiThread {
-                val scanning = activity.mediaScanner.isScanning()
-                binding.tracksPlaceholder.text = if (scanning) {
-                    context.getString(R.string.loading_files)
-                } else {
-                    context.getString(org.fossify.commons.R.string.no_items_found)
-                }
-                binding.tracksPlaceholder.beVisibleIf(tracks.isEmpty())
-                val adapter = binding.tracksList.adapter
-                if (adapter == null) {
-                    TracksAdapter(activity = activity, recyclerView = binding.tracksList, sourceType = TracksAdapter.TYPE_TRACKS, items = tracks) {
-                        activity.hideKeyboard()
-                        activity.handleNotificationPermission { granted ->
-                            if (granted) {
-                                val startIndex = tracks.indexOf(it as Track)
-                                prepareAndPlay(tracks, startIndex)
-                            } else {
-                                if (context is Activity) {
-                                    PermissionRequiredDialog(
-                                        activity,
-                                        org.fossify.commons.R.string.allow_notifications_music_player,
-                                        { activity.openNotificationSettings() }
-                                    )
-                                }
+            val scanning = activity.mediaScanner.isScanning()
+            binding.tracksPlaceholder.text = if (scanning) {
+                context.getString(R.string.loading_files)
+            } else {
+                context.getString(org.fossify.commons.R.string.no_items_found)
+            }
+            binding.tracksPlaceholder.beVisibleIf(tracks.isEmpty())
+            val adapter = binding.tracksList.adapter
+            if (adapter == null) {
+                TracksAdapter(activity = activity, recyclerView = binding.tracksList, sourceType = TracksAdapter.TYPE_TRACKS, items = tracks) {
+                    activity.hideKeyboard()
+                    activity.handleNotificationPermission { granted ->
+                        if (granted) {
+                            val startIndex = tracks.indexOf(it as Track)
+                            prepareAndPlay(tracks, startIndex)
+                        } else {
+                            if (context is Activity) {
+                                PermissionRequiredDialog(
+                                    activity,
+                                    org.fossify.commons.R.string.allow_notifications_music_player,
+                                    { activity.openNotificationSettings() }
+                                )
                             }
                         }
-                    }.apply {
-                        binding.tracksList.adapter = this
                     }
-
-                    if (context.areSystemAnimationsEnabled) {
-                        binding.tracksList.scheduleLayoutAnimation()
-                    }
-                } else {
-                    (adapter as TracksAdapter).updateItems(tracks)
+                }.apply {
+                    binding.tracksList.adapter = this
                 }
+
+                if (context.areSystemAnimationsEnabled) {
+                    binding.tracksList.scheduleLayoutAnimation()
+                }
+            } else {
+                (adapter as TracksAdapter).updateItems(tracks)
             }
         }
     }

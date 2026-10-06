@@ -349,8 +349,10 @@ class MainActivity : SimpleMusicActivity() {
                             it.playListId = playlistId
                         }
 
-                        ensureBackgroundThread {
-                            audioHelper.insertTracks(tracks)
+                        lifecycleScope.launch {
+                            withContext(Dispatchers.IO) {
+                                audioHelper.insertTracks(tracks)
+                            }
                             EventBus.getDefault().post(Events.PlaylistsUpdated())
                         }
                     }
