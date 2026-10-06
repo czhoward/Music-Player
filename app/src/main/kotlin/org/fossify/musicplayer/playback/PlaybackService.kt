@@ -40,6 +40,9 @@ class PlaybackService : MediaLibraryService(), MediaSessionService.Listener {
 
     override fun onDestroy() {
         super.onDestroy()
+        if (::mediaItemProvider.isInitialized) {
+            mediaItemProvider.release()
+        }
         releaseMediaSession()
         clearListener()
         stopSleepTimer()

@@ -148,6 +148,7 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
 
+    implementation(libs.kotlinx.coroutines.core)
     implementation(libs.fossify.commons)
     implementation(libs.eventbus)
     implementation(libs.androidx.media)

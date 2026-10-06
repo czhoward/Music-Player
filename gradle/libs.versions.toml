@@ -24,6 +24,7 @@ room = "2.8.4"
 #Testing
 junit = "4.13.2"
 robolectric = "4.14.1"
+kotlinxCoroutines = "1.9.0"
 #Fossify
 commons = "6.1.6"
 #Gradle
@@ -60,6 +61,7 @@ autofittextview = { module = "me.grantland:autofittextview", version.ref = "auto
 m3u-parser = { module = "com.github.bjoernpetersen:m3u-parser", version.ref = "m3uParser" }
 junit = { module = "junit:junit", version.ref = "junit" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
 [bundles]
 room = [
     "androidx-room-ktx",

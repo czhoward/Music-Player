@@ -12,7 +12,10 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.MediaMetadata.MediaType
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaSession.MediaItemsWithStartPosition
-import com.google.common.util.concurrent.MoreExecutors
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import org.fossify.musicplayer.R
 import org.fossify.musicplayer.extensions.*
 import org.fossify.musicplayer.helpers.TAB_ALBUMS
@@ -23,7 +26,6 @@ import org.fossify.musicplayer.helpers.TAB_PLAYLISTS
 import org.fossify.musicplayer.helpers.TAB_TRACKS
 import org.fossify.musicplayer.models.QueueItem
 import org.fossify.musicplayer.models.toMediaItems
-import java.util.concurrent.Executors
 
 private const val STATE_CREATED = 1
 private const val STATE_INITIALIZING = 2
@@ -43,9 +45,8 @@ private const val SMP_GENRES_ROOT_ID = "__GENRES__"
  */
 @UnstableApi
 internal class MediaItemProvider(private val context: Context) {
-    private val executor by lazy {
-        MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor())
-    }
+    private val scopeJob = SupervisorJob()
+    private val scope = CoroutineScope(scopeJob + Dispatchers.IO.limitedParallelism(1))
 
     inner class MediaItemNode(val item: MediaItem) {
         private val children: MutableList<MediaItem> = ArrayList()
@@ -57,6 +58,7 @@ internal class MediaItemProvider(private val context: Context) {
     private var titleMap: MutableMap<String, MediaItemNode> = mutableMapOf()
     private val onReadyListeners = mutableListOf<(Boolean) -> Unit>()
 
+    @Volatile
     private var state: Int = STATE_CREATED
         set(value) {
             if (value == STATE_INITIALIZED || value == STATE_ERROR) {
@@ -91,6 +93,10 @@ internal class MediaItemProvider(private val context: Context) {
                 true
             }
         }
+    }
+
+    fun release() {
+        scopeJob.complete()
     }
 
     operator fun get(mediaId: String): MediaItem? {
@@ -158,7 +164,7 @@ internal class MediaItemProvider(private val context: Context) {
             return
         }
 
-        executor.execute {
+        scope.launch {
             val trackId = current.mediaId.toLong()
             val queueItems = mediaItems.mapIndexed { index, mediaItem ->
                 QueueItem(trackId = mediaItem.mediaId.toLong(), trackOrder = index, isCurrent = false, lastPosition = 0)
@@ -170,10 +176,9 @@ internal class MediaItemProvider(private val context: Context) {
 
     fun reload() {
         state = STATE_INITIALIZING
-        executor.execute {
-            buildRoot()
-
+        scope.launch {
             try {
+            buildRoot()
                 buildPlaylists()
                 buildFolders()
                 buildArtists()
