@@ -5,8 +5,12 @@ import android.content.Intent
 import android.os.Bundle
 import android.provider.MediaStore
 import androidx.core.os.bundleOf
+import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.fossify.commons.extensions.toast
 import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.helpers.isRPlus
@@ -155,19 +159,17 @@ abstract class SimpleControllerActivity : SimpleActivity(), Player.Listener {
     }
 
     fun refreshQueueAndTracks(trackToUpdate: Track? = null) {
-        ensureBackgroundThread {
-            val queuedTracks = audioHelper.getQueuedTracks()
-            runOnUiThread {
-                withPlayer {
-                    // it's not yet directly possible to update metadata without interrupting the playback: https://github.com/androidx/media/issues/33
-                    if (trackToUpdate == null || currentMediaItem.isSameMedia(trackToUpdate)) {
-                        prepareUsingTracks(tracks = queuedTracks, startIndex = currentMediaItemIndex, startPositionMs = currentPosition, play = isReallyPlaying)
-                    } else {
-                        val trackIndex = currentMediaItems.indexOfTrack(trackToUpdate)
-                        if (trackIndex > 0) {
-                            removeMediaItem(trackIndex)
-                            addMediaItem(trackIndex, trackToUpdate.toMediaItem())
-                        }
+        lifecycleScope.launch {
+            val queuedTracks = withContext(Dispatchers.IO) { audioHelper.getQueuedTracks() }
+            withPlayer {
+                // it's not yet directly possible to update metadata without interrupting the playback: https://github.com/androidx/media/issues/33
+                if (trackToUpdate == null || currentMediaItem.isSameMedia(trackToUpdate)) {
+                    prepareUsingTracks(tracks = queuedTracks, startIndex = currentMediaItemIndex, startPositionMs = currentPosition, play = isReallyPlaying)
+                } else {
+                    val trackIndex = currentMediaItems.indexOfTrack(trackToUpdate)
+                    if (trackIndex > 0) {
+                        removeMediaItem(trackIndex)
+                        addMediaItem(trackIndex, trackToUpdate.toMediaItem())
                     }
                 }
             }

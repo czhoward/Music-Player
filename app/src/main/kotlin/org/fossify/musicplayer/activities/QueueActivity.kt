@@ -7,14 +7,17 @@ import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.widget.SearchView
 import androidx.core.view.MenuItemCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.fossify.commons.extensions.areSystemAnimationsEnabled
 import org.fossify.commons.extensions.beGoneIf
 import org.fossify.commons.extensions.getProperPrimaryColor
 import org.fossify.commons.extensions.normalizeString
 import org.fossify.commons.extensions.viewBinding
 import org.fossify.commons.helpers.NavigationIcon
-import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.musicplayer.R
 import org.fossify.musicplayer.adapters.QueueAdapter
 import org.fossify.musicplayer.databinding.ActivityQueueBinding
@@ -167,8 +170,10 @@ class QueueActivity : SimpleControllerActivity() {
                 tracks.add(it)
             }
 
-            ensureBackgroundThread {
-                RoomHelper(this).insertTracksWithPlaylist(tracks)
+            lifecycleScope.launch {
+                withContext(Dispatchers.IO) {
+                    RoomHelper(this@QueueActivity).insertTracksWithPlaylist(tracks)
+                }
             }
         }
     }
