@@ -12,8 +12,10 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.viewpager.widget.ViewPager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import me.grantland.widget.AutofitHelper
 import org.fossify.musicplayer.BuildConfig
 import org.fossify.commons.databinding.BottomTablayoutItemBinding
@@ -428,20 +430,22 @@ class MainActivity : SimpleMusicActivity() {
     }
 
     private fun importPlaylist(path: String, id: Int) {
-        ensureBackgroundThread {
-            M3uImporter(this) { result ->
-                runOnUiThread {
-                    toast(
-                        when (result) {
-                            ImportResult.IMPORT_OK -> org.fossify.commons.R.string.importing_successful
-                            ImportResult.IMPORT_PARTIAL -> org.fossify.commons.R.string.importing_some_entries_failed
-                            else -> org.fossify.commons.R.string.importing_failed
-                        }
-                    )
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                var importResult = ImportResult.IMPORT_FAIL
+                M3uImporter(this@MainActivity) { importResult = it }.importPlaylist(path, id)
+                importResult
+            }
 
-                    getAdapter()?.getPlaylistsFragment()?.setupFragment(this)
+            toast(
+                when (result) {
+                    ImportResult.IMPORT_OK -> org.fossify.commons.R.string.importing_successful
+                    ImportResult.IMPORT_PARTIAL -> org.fossify.commons.R.string.importing_some_entries_failed
+                    else -> org.fossify.commons.R.string.importing_failed
                 }
-            }.importPlaylist(path, id)
+            )
+
+            getAdapter()?.getPlaylistsFragment()?.setupFragment(this@MainActivity)
         }
     }
 
