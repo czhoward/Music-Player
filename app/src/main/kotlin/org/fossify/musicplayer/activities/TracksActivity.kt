@@ -11,8 +11,12 @@ import android.view.MenuItem
 import android.widget.Toast
 import androidx.appcompat.widget.SearchView
 import androidx.core.view.MenuItemCompat
+import androidx.lifecycle.lifecycleScope
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.fossify.commons.dialogs.FilePickerDialog
 import org.fossify.commons.dialogs.PermissionRequiredDialog
 import org.fossify.commons.extensions.*
@@ -182,94 +186,88 @@ class TracksActivity : SimpleMusicActivity() {
         binding.tracksToolbar.title = titleToUse
         refreshMenuItems()
 
-        ensureBackgroundThread {
-            val tracks = ArrayList<Track>()
-            val listItems = ArrayList<ListItem>()
-            when (sourceType) {
-                TYPE_PLAYLIST -> {
-                    val playlistTracks = audioHelper.getPlaylistTracks(playlist!!.id)
-                    runOnUiThread {
-                        binding.tracksPlaceholder.beVisibleIf(playlistTracks.isEmpty())
-                        binding.tracksPlaceholder2.beVisibleIf(playlistTracks.isEmpty())
+        lifecycleScope.launch {
+            val (tracks, listItems) = withContext(Dispatchers.IO) {
+                val tracks = ArrayList<Track>()
+                val listItems = ArrayList<ListItem>()
+                when (sourceType) {
+                    TYPE_PLAYLIST -> {
+                        val playlistTracks = audioHelper.getPlaylistTracks(playlist!!.id)
+                        tracks.addAll(playlistTracks)
+                        listItems.addAll(tracks)
                     }
 
-                    tracks.addAll(playlistTracks)
-                    listItems.addAll(tracks)
-                }
+                    TYPE_ALBUM -> {
+                        val albumTracks = audioHelper.getAlbumTracks(album.id)
+                        tracks.addAll(albumTracks)
 
-                TYPE_ALBUM -> {
-                    val albumTracks = audioHelper.getAlbumTracks(album.id)
-                    tracks.addAll(albumTracks)
-
-                    val header = AlbumHeader(
-                        album.id,
-                        album.title,
-                        album.coverArt,
-                        album.year,
-                        tracks.size,
-                        tracks.sumOf { it.duration },
-                        album.artist,
-                        album.albumArtist,
-                        album.isCompilation,
-                    )
-                    listItems.add(header)
-                    listItems.addAll(tracks)
-                }
-
-                TYPE_TRACKS -> {
-                    val genreTracks = audioHelper.getGenreTracks(genre.id)
-                    tracks.addAll(genreTracks)
-                }
-
-                else -> {
-                    val folderTracks = audioHelper.getFolderTracks(folder.orEmpty())
-                    runOnUiThread {
-                        binding.tracksPlaceholder.beVisibleIf(folderTracks.isEmpty())
+                        val header = AlbumHeader(
+                            album.id,
+                            album.title,
+                            album.coverArt,
+                            album.year,
+                            tracks.size,
+                            tracks.sumOf { it.duration },
+                            album.artist,
+                            album.albumArtist,
+                            album.isCompilation,
+                        )
+                        listItems.add(header)
+                        listItems.addAll(tracks)
                     }
 
-                    tracks.addAll(folderTracks)
-                    listItems.addAll(tracks)
+                    TYPE_TRACKS -> tracks.addAll(audioHelper.getGenreTracks(genre.id))
+                    else -> {
+                        tracks.addAll(audioHelper.getFolderTracks(folder.orEmpty()))
+                        listItems.addAll(tracks)
+                    }
                 }
+                tracks to listItems
             }
 
-            runOnUiThread {
-                if (sourceType == TYPE_ALBUM) {
-                    val currAdapter = binding.tracksList.adapter
-                    if (currAdapter == null) {
-                        TracksHeaderAdapter(this, listItems, binding.tracksList) {
-                            itemClicked(it as Track)
-                        }.apply {
-                            binding.tracksList.adapter = this
-                        }
+            if (sourceType == TYPE_PLAYLIST) {
+                binding.tracksPlaceholder.beVisibleIf(tracks.isEmpty())
+                binding.tracksPlaceholder2.beVisibleIf(tracks.isEmpty())
+            } else if (sourceType == TYPE_FOLDER) {
+                binding.tracksPlaceholder.beVisibleIf(tracks.isEmpty())
+            }
 
-                        if (areSystemAnimationsEnabled) {
-                            binding.tracksList.scheduleLayoutAnimation()
-                        }
-                    } else {
-                        (currAdapter as TracksHeaderAdapter).updateItems(listItems)
+            if (sourceType == TYPE_ALBUM) {
+                val currAdapter = binding.tracksList.adapter
+                if (currAdapter == null) {
+                    TracksHeaderAdapter(this@TracksActivity, listItems, binding.tracksList) {
+                        itemClicked(it as Track)
+                    }.apply {
+                        binding.tracksList.adapter = this
+                    }
+
+                    if (areSystemAnimationsEnabled) {
+                        binding.tracksList.scheduleLayoutAnimation()
                     }
                 } else {
-                    val currAdapter = binding.tracksList.adapter
-                    if (currAdapter == null) {
-                        TracksAdapter(
-                            activity = this,
-                            recyclerView = binding.tracksList,
-                            sourceType = sourceType,
-                            folder = folder,
-                            playlist = playlist,
-                            items = tracks
-                        ) {
-                            itemClicked(it as Track)
-                        }.apply {
-                            binding.tracksList.adapter = this
-                        }
-
-                        if (areSystemAnimationsEnabled) {
-                            binding.tracksList.scheduleLayoutAnimation()
-                        }
-                    } else {
-                        (currAdapter as TracksAdapter).updateItems(tracks)
+                    (currAdapter as TracksHeaderAdapter).updateItems(listItems)
+                }
+            } else {
+                val currAdapter = binding.tracksList.adapter
+                if (currAdapter == null) {
+                    TracksAdapter(
+                        activity = this@TracksActivity,
+                        recyclerView = binding.tracksList,
+                        sourceType = sourceType,
+                        folder = folder,
+                        playlist = playlist,
+                        items = tracks
+                    ) {
+                        itemClicked(it as Track)
+                    }.apply {
+                        binding.tracksList.adapter = this
                     }
+
+                    if (areSystemAnimationsEnabled) {
+                        binding.tracksList.scheduleLayoutAnimation()
+                    }
+                } else {
+                    (currAdapter as TracksAdapter).updateItems(tracks)
                 }
             }
         }
