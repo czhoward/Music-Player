@@ -3,10 +3,13 @@ package org.fossify.musicplayer.fragments
 import android.content.Context
 import android.content.Intent
 import android.util.AttributeSet
+import androidx.lifecycle.lifecycleScope
 import com.google.gson.Gson
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.extensions.*
-import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.musicplayer.R
 import org.fossify.musicplayer.activities.SimpleActivity
 import org.fossify.musicplayer.activities.TracksActivity
@@ -37,43 +40,44 @@ class PlaylistsFragment(context: Context, attributeSet: AttributeSet) : MyViewPa
             }
         }
 
-        ensureBackgroundThread {
-            val playlists = context.audioHelper.getAllPlaylists()
-            playlists.forEach {
-                it.trackCount = context.audioHelper.getPlaylistTrackCount(it.id)
+        activity.lifecycleScope.launch {
+            val playlists = withContext(Dispatchers.IO) {
+                val playlists = context.audioHelper.getAllPlaylists()
+                playlists.forEach {
+                    it.trackCount = context.audioHelper.getPlaylistTrackCount(it.id)
+                }
+
+                playlists.sortSafely(context.config.playlistSorting)
+                playlists
             }
+            this@PlaylistsFragment.playlists = playlists
 
-            playlists.sortSafely(context.config.playlistSorting)
-            this.playlists = playlists
+            val scanning = activity.mediaScanner.isScanning()
+            binding.playlistsPlaceholder.text = if (scanning) {
+                context.getString(R.string.loading_files)
+            } else {
+                context.getString(org.fossify.commons.R.string.no_items_found)
+            }
+            binding.playlistsPlaceholder.beVisibleIf(playlists.isEmpty())
+            binding.playlistsPlaceholder2.beVisibleIf(playlists.isEmpty() && !scanning)
 
-            activity.runOnUiThread {
-                val scanning = activity.mediaScanner.isScanning()
-                binding.playlistsPlaceholder.text = if (scanning) {
-                    context.getString(R.string.loading_files)
-                } else {
-                    context.getString(org.fossify.commons.R.string.no_items_found)
-                }
-                binding.playlistsPlaceholder.beVisibleIf(playlists.isEmpty())
-                binding.playlistsPlaceholder2.beVisibleIf(playlists.isEmpty() && !scanning)
-
-                val adapter = binding.playlistsList.adapter
-                if (adapter == null) {
-                    PlaylistsAdapter(activity, playlists, binding.playlistsList) {
-                        activity.hideKeyboard()
-                        Intent(activity, TracksActivity::class.java).apply {
-                            putExtra(PLAYLIST, Gson().toJson(it))
-                            activity.startActivity(this)
-                        }
-                    }.apply {
-                        binding.playlistsList.adapter = this
+            val adapter = binding.playlistsList.adapter
+            if (adapter == null) {
+                PlaylistsAdapter(activity, playlists, binding.playlistsList) {
+                    activity.hideKeyboard()
+                    Intent(activity, TracksActivity::class.java).apply {
+                        putExtra(PLAYLIST, Gson().toJson(it))
+                        activity.startActivity(this)
                     }
-
-                    if (context.areSystemAnimationsEnabled) {
-                        binding.playlistsList.scheduleLayoutAnimation()
-                    }
-                } else {
-                    (adapter as PlaylistsAdapter).updateItems(playlists)
+                }.apply {
+                    binding.playlistsList.adapter = this
                 }
+
+                if (context.areSystemAnimationsEnabled) {
+                    binding.playlistsList.scheduleLayoutAnimation()
+                }
+            } else {
+                (adapter as PlaylistsAdapter).updateItems(playlists)
             }
         }
     }

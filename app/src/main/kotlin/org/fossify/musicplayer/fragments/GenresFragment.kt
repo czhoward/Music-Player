@@ -3,14 +3,17 @@ package org.fossify.musicplayer.fragments
 import android.content.Context
 import android.content.Intent
 import android.util.AttributeSet
+import androidx.lifecycle.lifecycleScope
 import com.google.gson.Gson
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.extensions.areSystemAnimationsEnabled
 import org.fossify.commons.extensions.beGoneIf
 import org.fossify.commons.extensions.beVisibleIf
 import org.fossify.commons.extensions.hideKeyboard
 import org.fossify.commons.extensions.normalizeString
-import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.musicplayer.R
 import org.fossify.musicplayer.activities.SimpleActivity
 import org.fossify.musicplayer.activities.TracksActivity
@@ -31,11 +34,9 @@ class GenresFragment(context: Context, attributeSet: AttributeSet) : MyViewPager
     private val binding by viewBinding(FragmentGenresBinding::bind)
 
     override fun setupFragment(activity: BaseSimpleActivity) {
-        ensureBackgroundThread {
-            val cachedGenres = activity.audioHelper.getAllGenres()
-            activity.runOnUiThread {
-                gotGenres(activity, cachedGenres)
-            }
+        activity.lifecycleScope.launch {
+            val cachedGenres = withContext(Dispatchers.IO) { activity.audioHelper.getAllGenres() }
+            gotGenres(activity, cachedGenres)
         }
     }
 

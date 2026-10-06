@@ -3,14 +3,17 @@ package org.fossify.musicplayer.fragments
 import android.content.Context
 import android.content.Intent
 import android.util.AttributeSet
+import androidx.lifecycle.lifecycleScope
 import com.google.gson.Gson
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.extensions.areSystemAnimationsEnabled
 import org.fossify.commons.extensions.beGoneIf
 import org.fossify.commons.extensions.beVisibleIf
 import org.fossify.commons.extensions.hideKeyboard
 import org.fossify.commons.extensions.normalizeString
-import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.musicplayer.R
 import org.fossify.musicplayer.activities.AlbumsActivity
 import org.fossify.musicplayer.activities.SimpleActivity
@@ -32,11 +35,9 @@ class ArtistsFragment(context: Context, attributeSet: AttributeSet) : MyViewPage
     private val binding by viewBinding(FragmentArtistsBinding::bind)
 
     override fun setupFragment(activity: BaseSimpleActivity) {
-        ensureBackgroundThread {
-            val cachedArtists = activity.audioHelper.getAllArtists()
-            activity.runOnUiThread {
-                gotArtists(activity, cachedArtists)
-            }
+        activity.lifecycleScope.launch {
+            val cachedArtists = withContext(Dispatchers.IO) { activity.audioHelper.getAllArtists() }
+            gotArtists(activity, cachedArtists)
         }
     }
 

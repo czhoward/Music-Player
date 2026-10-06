@@ -3,14 +3,17 @@ package org.fossify.musicplayer.fragments
 import android.content.Context
 import android.content.Intent
 import android.util.AttributeSet
+import androidx.lifecycle.lifecycleScope
 import com.google.gson.Gson
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.extensions.areSystemAnimationsEnabled
 import org.fossify.commons.extensions.beGoneIf
 import org.fossify.commons.extensions.beVisibleIf
 import org.fossify.commons.extensions.hideKeyboard
 import org.fossify.commons.extensions.normalizeString
-import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.musicplayer.R
 import org.fossify.musicplayer.activities.SimpleActivity
 import org.fossify.musicplayer.activities.TracksActivity
@@ -32,11 +35,9 @@ class AlbumsFragment(context: Context, attributeSet: AttributeSet) : MyViewPager
     private val binding by viewBinding(FragmentAlbumsBinding::bind)
 
     override fun setupFragment(activity: BaseSimpleActivity) {
-        ensureBackgroundThread {
-            val cachedAlbums = activity.audioHelper.getAllAlbums()
-            activity.runOnUiThread {
-                gotAlbums(activity, cachedAlbums)
-            }
+        activity.lifecycleScope.launch {
+            val cachedAlbums = withContext(Dispatchers.IO) { activity.audioHelper.getAllAlbums() }
+            gotAlbums(activity, cachedAlbums)
         }
     }
 

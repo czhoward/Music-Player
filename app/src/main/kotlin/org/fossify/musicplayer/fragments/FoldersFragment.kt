@@ -3,9 +3,12 @@ package org.fossify.musicplayer.fragments
 import android.content.Context
 import android.content.Intent
 import android.util.AttributeSet
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.extensions.*
-import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.musicplayer.R
 import org.fossify.musicplayer.activities.ExcludedFoldersActivity
 import org.fossify.musicplayer.activities.SimpleActivity
@@ -27,45 +30,43 @@ class FoldersFragment(context: Context, attributeSet: AttributeSet) : MyViewPage
     private val binding by viewBinding(FragmentFoldersBinding::bind)
 
     override fun setupFragment(activity: BaseSimpleActivity) {
-        ensureBackgroundThread {
-            val folders = context.audioHelper.getAllFolders()
+        activity.lifecycleScope.launch {
+            val folders = withContext(Dispatchers.IO) { context.audioHelper.getAllFolders() }
 
-            activity.runOnUiThread {
-                val scanning = activity.mediaScanner.isScanning()
-                binding.foldersPlaceholder.text = if (scanning) {
-                    context.getString(R.string.loading_files)
-                } else {
-                    context.getString(org.fossify.commons.R.string.no_items_found)
-                }
-                binding.foldersPlaceholder.beVisibleIf(folders.isEmpty())
-                binding.foldersFastscroller.beGoneIf(binding.foldersPlaceholder.isVisible())
-                binding.foldersPlaceholder2.beVisibleIf(folders.isEmpty() && context.config.excludedFolders.isNotEmpty() && !scanning)
-                binding.foldersPlaceholder2.underlineText()
+            val scanning = activity.mediaScanner.isScanning()
+            binding.foldersPlaceholder.text = if (scanning) {
+                context.getString(R.string.loading_files)
+            } else {
+                context.getString(org.fossify.commons.R.string.no_items_found)
+            }
+            binding.foldersPlaceholder.beVisibleIf(folders.isEmpty())
+            binding.foldersFastscroller.beGoneIf(binding.foldersPlaceholder.isVisible())
+            binding.foldersPlaceholder2.beVisibleIf(folders.isEmpty() && context.config.excludedFolders.isNotEmpty() && !scanning)
+            binding.foldersPlaceholder2.underlineText()
 
-                binding.foldersPlaceholder2.setOnClickListener {
-                    activity.startActivity(Intent(activity, ExcludedFoldersActivity::class.java))
-                }
+            binding.foldersPlaceholder2.setOnClickListener {
+                activity.startActivity(Intent(activity, ExcludedFoldersActivity::class.java))
+            }
 
-                this.folders = folders
+            this@FoldersFragment.folders = folders
 
-                val adapter = binding.foldersList.adapter
-                if (adapter == null) {
-                    FoldersAdapter(activity, folders, binding.foldersList) {
-                        activity.hideKeyboard()
-                        Intent(activity, TracksActivity::class.java).apply {
-                            putExtra(FOLDER, (it as Folder).title)
-                            activity.startActivity(this)
-                        }
-                    }.apply {
-                        binding.foldersList.adapter = this
+            val adapter = binding.foldersList.adapter
+            if (adapter == null) {
+                FoldersAdapter(activity, folders, binding.foldersList) {
+                    activity.hideKeyboard()
+                    Intent(activity, TracksActivity::class.java).apply {
+                        putExtra(FOLDER, (it as Folder).title)
+                        activity.startActivity(this)
                     }
-
-                    if (context.areSystemAnimationsEnabled) {
-                        binding.foldersList.scheduleLayoutAnimation()
-                    }
-                } else {
-                    (adapter as FoldersAdapter).updateItems(folders)
+                }.apply {
+                    binding.foldersList.adapter = this
                 }
+
+                if (context.areSystemAnimationsEnabled) {
+                    binding.foldersList.scheduleLayoutAnimation()
+                }
+            } else {
+                (adapter as FoldersAdapter).updateItems(folders)
             }
         }
     }
