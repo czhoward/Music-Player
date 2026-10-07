@@ -32,6 +32,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Converted `TracksFragment`'s Room-backed track query to the owning Activity's lifecycle scope, keeping custom-view updates on main.
 - Added `awaitFolderTracks()` to bridge the callback-based folder scanner to suspension; `MainActivity` and `TracksActivity` now await folder results in lifecycle scopes and perform playlist writes/refresh queries on IO.
 - Converted the shared add-to-playlist Room insert and playlist-row deletion to Activity lifecycle IO; adapter selection reads for queue/properties actions now stay on main.
+- Kept `BaseMusicAdapter` selection reads and share-intent launch on main, removing unnecessary background/UI hops.
 - Reformatted a long `AlbumHeader` constructor call in `TracksActivity` to satisfy Detekt.
 - Compiled the `coreDebug`, `fossDebug`, and `gplayDebug` variants successfully.
 - Ran lint successfully for all three debug variants and Detekt successfully across 105 Kotlin files.
@@ -43,10 +44,8 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 Current uncommitted work on `main`:
 
 - `app/src/main/kotlin/org/fossify/musicplayer/adapters/BaseMusicAdapter.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/adapters/PlaylistsAdapter.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/extensions/Activity.kt`
-- `app/src/test/kotlin/org/fossify/musicplayer/extensions/FolderTracksAwaitTest.kt`
-- `COPILOT_HANDOFF.md`
+
+Previously completed threading conversions are already in the tree; the remaining `BaseMusicAdapter` selection/share thread cleanup is the current uncommitted change.
 
 ## Environment and Validation Notes
 
@@ -94,6 +93,7 @@ Current uncommitted work on `main`:
 - [x] Convert `TracksFragment`'s Room-backed track query to the owning Activity lifecycle scope.
 - [x] Bridge folder-track callbacks to suspension and convert MainActivity/TracksActivity folder-playlist flows.
 - [x] Move shared playlist inserts and playlist-row deletion to lifecycle-owned IO; keep adapter selection reads on main.
+- [x] Keep adapter-owned queue/properties selection and share-intent operations on main.
 - [x] Convert Albums, Artists, Folders, Genres, and Playlists pager queries to their hosting Activity's lifecycle scope.
 - Replace scattered background-thread helpers with structured concurrency where practical.
 - Audit `EventBus` usage and decide whether each path should move to a state-holder or be kept behind a smaller boundary.

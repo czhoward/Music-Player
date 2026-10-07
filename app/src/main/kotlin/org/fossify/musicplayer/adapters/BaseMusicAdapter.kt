@@ -11,7 +11,6 @@ import com.bumptech.glide.request.RequestOptions
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.adapters.MyRecyclerViewAdapter
 import org.fossify.commons.extensions.getProperPrimaryColor
-import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.views.MyRecyclerView
 import org.fossify.musicplayer.activities.SimpleControllerActivity
 import org.fossify.musicplayer.extensions.*
@@ -116,9 +115,7 @@ abstract class BaseMusicAdapter<Type>(
     }
 
     fun shareFiles() {
-        ensureBackgroundThread {
-            context.shareFiles(getAllSelectedTracks())
-        }
+        context.shareFiles(getAllSelectedTracks())
     }
 
     fun showProperties() {
