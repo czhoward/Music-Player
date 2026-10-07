@@ -4,28 +4,30 @@ import android.app.Activity
 import android.view.ViewGroup
 import android.widget.RadioGroup
 import androidx.appcompat.app.AlertDialog
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.fossify.commons.extensions.getAlertDialogBuilder
 import org.fossify.commons.extensions.setupDialogStuff
 import org.fossify.commons.extensions.viewBinding
-import org.fossify.commons.helpers.ensureBackgroundThread
+import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.musicplayer.databinding.DialogSelectPlaylistBinding
 import org.fossify.musicplayer.databinding.ItemSelectPlaylistBinding
 import org.fossify.musicplayer.extensions.audioHelper
 import org.fossify.musicplayer.models.Playlist
 
-class SelectPlaylistDialog(val activity: Activity, val callback: (playlistId: Int) -> Unit) {
+class SelectPlaylistDialog(val activity: BaseSimpleActivity, val callback: (playlistId: Int) -> Unit) {
     private var dialog: AlertDialog? = null
     private val binding by activity.viewBinding(DialogSelectPlaylistBinding::inflate)
 
     init {
-        ensureBackgroundThread {
-            val playlists = activity.audioHelper.getAllPlaylists()
-            activity.runOnUiThread {
-                initDialog(playlists)
+        activity.lifecycleScope.launch {
+            val playlists = withContext(Dispatchers.IO) { activity.audioHelper.getAllPlaylists() }
+            initDialog(playlists)
 
-                if (playlists.isEmpty()) {
-                    showNewPlaylistDialog()
-                }
+            if (playlists.isEmpty()) {
+                showNewPlaylistDialog()
             }
         }
 
