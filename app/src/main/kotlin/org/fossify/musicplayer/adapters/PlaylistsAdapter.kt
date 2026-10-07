@@ -3,7 +3,11 @@ package org.fossify.musicplayer.adapters
 import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
+import androidx.lifecycle.lifecycleScope
 import com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.extensions.highlightTextPart
 import org.fossify.commons.extensions.setupViewBackground
@@ -71,17 +75,17 @@ class PlaylistsAdapter(
     }
 
     private fun removePlaylists(playlistsToDelete: ArrayList<Playlist>) {
-        val positions = playlistsToDelete.mapNotNull { playlist ->
-            items.indexOfFirstOrNull { it.id == playlist.id }
-        } as ArrayList<Int>
+        context.lifecycleScope.launch {
+            val positions = playlistsToDelete.mapNotNull { playlist ->
+                items.indexOfFirstOrNull { it.id == playlist.id }
+            } as ArrayList<Int>
 
-        ensureBackgroundThread {
-            context.audioHelper.deletePlaylists(playlistsToDelete)
-            context.runOnUiThread {
-                items.removeAll(playlistsToDelete.toSet())
-                removeSelectedItems(positions)
+            withContext(Dispatchers.IO) {
+                context.audioHelper.deletePlaylists(playlistsToDelete)
             }
 
+            items.removeAll(playlistsToDelete.toSet())
+            removeSelectedItems(positions)
             EventBus.getDefault().post(Events.PlaylistsUpdated())
         }
     }

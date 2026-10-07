@@ -3,7 +3,12 @@ package org.fossify.musicplayer.extensions
 import android.app.Activity
 import android.content.ContentUris
 import android.provider.MediaStore
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.suspendCancellableCoroutine
+import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.dialogs.PropertiesDialog
 import org.fossify.commons.extensions.rescanPaths
 import org.fossify.commons.extensions.sharePathsIntent
@@ -15,7 +20,7 @@ import org.fossify.musicplayer.helpers.RoomHelper
 import org.fossify.musicplayer.models.Track
 import kotlin.coroutines.resume
 
-fun Activity.addTracksToPlaylist(tracks: List<Track>, callback: () -> Unit) {
+fun BaseSimpleActivity.addTracksToPlaylist(tracks: List<Track>, callback: () -> Unit) {
     SelectPlaylistDialog(this) { playlistId ->
         val tracksToAdd = ArrayList<Track>()
         tracks.forEach {
@@ -24,12 +29,11 @@ fun Activity.addTracksToPlaylist(tracks: List<Track>, callback: () -> Unit) {
             tracksToAdd.add(it)
         }
 
-        ensureBackgroundThread {
-            RoomHelper(this).insertTracksWithPlaylist(tracksToAdd)
-
-            runOnUiThread {
-                callback()
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                RoomHelper(this@addTracksToPlaylist).insertTracksWithPlaylist(tracksToAdd)
             }
+            callback()
         }
     }
 }

@@ -94,37 +94,24 @@ abstract class BaseMusicAdapter<Type>(
     }
 
     fun addToQueue() {
-        ensureBackgroundThread {
-            val allSelectedTracks = getAllSelectedTracks()
-            context.runOnUiThread {
-                context.addTracksToQueue(allSelectedTracks) {
-                    finishActMode()
-                }
-            }
+        val allSelectedTracks = getAllSelectedTracks()
+        context.addTracksToQueue(allSelectedTracks) {
+            finishActMode()
         }
     }
 
     fun playNextInQueue() {
-        ensureBackgroundThread {
-            getSelectedTracks().firstOrNull()?.let { selectedTrack ->
-                context.runOnUiThread {
-                    context.playNextInQueue(selectedTrack) {
-                        finishActMode()
-                    }
-                }
-            }
+        val selectedTrack = getSelectedTracks().firstOrNull() ?: return
+        context.playNextInQueue(selectedTrack) {
+            finishActMode()
         }
     }
 
     fun addToPlaylist() {
-        ensureBackgroundThread {
-            val allSelectedTracks = getAllSelectedTracks()
-            context.runOnUiThread {
-                context.addTracksToPlaylist(allSelectedTracks) {
-                    finishActMode()
-                    notifyDataChanged()
-                }
-            }
+        val allSelectedTracks = getAllSelectedTracks()
+        context.addTracksToPlaylist(allSelectedTracks) {
+            finishActMode()
+            notifyDataChanged()
         }
     }
 
@@ -135,15 +122,9 @@ abstract class BaseMusicAdapter<Type>(
     }
 
     fun showProperties() {
-        ensureBackgroundThread {
-            val selectedTracks = getAllSelectedTracks()
-            if (selectedTracks.isEmpty()) {
-                return@ensureBackgroundThread
-            }
-
-            context.runOnUiThread {
-                context.showTrackProperties(selectedTracks)
-            }
+        val selectedTracks = getAllSelectedTracks()
+        if (selectedTracks.isNotEmpty()) {
+            context.showTrackProperties(selectedTracks)
         }
     }
 

@@ -31,6 +31,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Converted `MainActivity`'s M3U parsing and playlist database insert to lifecycle-owned IO work, then handles the result and fragment refresh on main.
 - Converted `TracksFragment`'s Room-backed track query to the owning Activity's lifecycle scope, keeping custom-view updates on main.
 - Added `awaitFolderTracks()` to bridge the callback-based folder scanner to suspension; `MainActivity` and `TracksActivity` now await folder results in lifecycle scopes and perform playlist writes/refresh queries on IO.
+- Converted the shared add-to-playlist Room insert and playlist-row deletion to Activity lifecycle IO; adapter selection reads for queue/properties actions now stay on main.
 - Reformatted a long `AlbumHeader` constructor call in `TracksActivity` to satisfy Detekt.
 - Compiled the `coreDebug`, `fossDebug`, and `gplayDebug` variants successfully.
 - Ran lint successfully for all three debug variants and Detekt successfully across 105 Kotlin files.
@@ -41,8 +42,8 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 
 Current uncommitted work on `main`:
 
-- `app/src/main/kotlin/org/fossify/musicplayer/activities/MainActivity.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/activities/TracksActivity.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/adapters/BaseMusicAdapter.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/adapters/PlaylistsAdapter.kt`
 - `app/src/main/kotlin/org/fossify/musicplayer/extensions/Activity.kt`
 - `app/src/test/kotlin/org/fossify/musicplayer/extensions/FolderTracksAwaitTest.kt`
 - `COPILOT_HANDOFF.md`
@@ -58,7 +59,7 @@ Current uncommitted work on `main`:
 ## Recommended Next Steps
 
 1. Add an instrumentation or controlled MediaStore scan test and cover Android system-level foreground-service behavior.
-2. Continue replacing remaining callback-heavy `ensureBackgroundThread` uses with lifecycle-owned structured concurrency where practical; Activity queue/import actions, direct-query pager views, and the two folder-playlist flows are converted.
+2. Continue replacing remaining callback-heavy `ensureBackgroundThread` uses with lifecycle-owned structured concurrency where practical; direct-query pager views, folder-playlist flows, and selected playlist/adapter operations are converted.
 3. Review whether any remaining one-shot EventBus invalidations need a state-holder; recurring sleep-timer state has already moved to `StateFlow`.
 4. Review remaining deprecated Media3 workarounds; the current shuffle-order next-item behavior is regression-covered but still depends on the deprecated API.
 5. Decide the new minimum supported Android version, then review storage permissions and manifest compatibility against that floor.
@@ -92,6 +93,7 @@ Current uncommitted work on `main`:
 - [x] Convert `MainActivity`'s M3U import processing to lifecycle-owned IO work.
 - [x] Convert `TracksFragment`'s Room-backed track query to the owning Activity lifecycle scope.
 - [x] Bridge folder-track callbacks to suspension and convert MainActivity/TracksActivity folder-playlist flows.
+- [x] Move shared playlist inserts and playlist-row deletion to lifecycle-owned IO; keep adapter selection reads on main.
 - [x] Convert Albums, Artists, Folders, Genres, and Playlists pager queries to their hosting Activity's lifecycle scope.
 - Replace scattered background-thread helpers with structured concurrency where practical.
 - Audit `EventBus` usage and decide whether each path should move to a state-holder or be kept behind a smaller boundary.
