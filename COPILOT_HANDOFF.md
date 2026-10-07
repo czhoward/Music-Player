@@ -34,6 +34,10 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Converted the shared add-to-playlist Room insert and playlist-row deletion to Activity lifecycle IO; adapter selection reads for queue/properties actions now stay on main.
 - Kept `BaseMusicAdapter` selection reads and share-intent launch on main, removing unnecessary background/UI hops.
 - Converted `SelectPlaylistDialog`'s playlist query to the host `BaseSimpleActivity` lifecycle scope and IO dispatcher.
+- Converted `NewPlaylistDialog` duplicate-title checks and Room create/rename operations to lifecycle-owned IO while keeping dialog feedback on main.
+- Kept `ExportPlaylistDialog` callbacks on main for picker/file-stream work and moved its export-path preference update to lifecycle IO.
+- Moved `EditDialog`'s Room track-info update to lifecycle-owned IO; its permission-sensitive tag write and file-rename flow remain callback-driven.
+- Converted `TracksAdapter` playlist removal and reorder persistence to lifecycle-owned IO, while keeping selected-item snapshots and adapter mutations on main.
 - Reformatted a long `AlbumHeader` constructor call in `TracksActivity` to satisfy Detekt.
 - Compiled the `coreDebug`, `fossDebug`, and `gplayDebug` variants successfully.
 - Ran lint successfully for all three debug variants and Detekt successfully across 105 Kotlin files.
@@ -44,9 +48,8 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 
 Current uncommitted work on `main`:
 
-- `app/src/main/kotlin/org/fossify/musicplayer/dialogs/SelectPlaylistDialog.kt`
-
-Previously completed adapter and Activity threading conversions are already in the tree; the playlist chooser lifecycle conversion is the current uncommitted change.
+- `app/src/main/kotlin/org/fossify/musicplayer/adapters/TracksAdapter.kt`
+- `COPILOT_HANDOFF.md`
 
 ## Environment and Validation Notes
 
@@ -59,7 +62,7 @@ Previously completed adapter and Activity threading conversions are already in t
 ## Recommended Next Steps
 
 1. Add an instrumentation or controlled MediaStore scan test and cover Android system-level foreground-service behavior.
-2. Continue replacing remaining callback-heavy `ensureBackgroundThread` uses with lifecycle-owned structured concurrency where practical; direct-query pager views, folder-playlist flows, playlist chooser, and selected playlist/adapter operations are converted.
+2. Continue replacing remaining callback-heavy `ensureBackgroundThread` uses with lifecycle-owned structured concurrency where practical; playlist, folder, and adapter removal/reorder writes are converted. MediaStore deletion and permission-sensitive tag-edit flows remain callback-based.
 3. Review whether any remaining one-shot EventBus invalidations need a state-holder; recurring sleep-timer state has already moved to `StateFlow`.
 4. Review remaining deprecated Media3 workarounds; the current shuffle-order next-item behavior is regression-covered but still depends on the deprecated API.
 5. Decide the new minimum supported Android version, then review storage permissions and manifest compatibility against that floor.
@@ -95,7 +98,11 @@ Previously completed adapter and Activity threading conversions are already in t
 - [x] Bridge folder-track callbacks to suspension and convert MainActivity/TracksActivity folder-playlist flows.
 - [x] Move shared playlist inserts and playlist-row deletion to lifecycle-owned IO; keep adapter selection reads on main.
 - [x] Keep adapter-owned queue/properties selection and share-intent operations on main.
+- [x] Move TracksAdapter playlist removal and reorder Room writes to lifecycle-owned IO.
 - [x] Move `SelectPlaylistDialog`'s Room query into the host Activity lifecycle scope.
+- [x] Move playlist create/rename database work into the dialog Activity lifecycle scope.
+- [x] Keep export callbacks on main and move export-path persistence to lifecycle IO.
+- [x] Move edited-song Room metadata updates to lifecycle IO; retain the permission-sensitive tag flow separately.
 - [x] Convert Albums, Artists, Folders, Genres, and Playlists pager queries to their hosting Activity's lifecycle scope.
 - Replace scattered background-thread helpers with structured concurrency where practical.
 - Audit `EventBus` usage and decide whether each path should move to a state-holder or be kept behind a smaller boundary.

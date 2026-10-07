@@ -5,9 +5,13 @@ import android.view.Menu
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.dialogs.ConfirmationDialog
 import org.fossify.commons.extensions.*
@@ -110,34 +114,35 @@ class TracksAdapter(
     private fun removeFromPlaylist(playlist: Playlist?) {
         if (playlist == null) return
 
-        ensureBackgroundThread {
-            val positions = ArrayList<Int>()
-            val selectedTracks = getSelectedTracks()
-            selectedTracks.forEach { track ->
-                val position = items.indexOfFirst { it.mediaStoreId == track.mediaStoreId }
-                if (position != -1) {
-                    positions.add(position)
-                }
+        val selectedTracks = getSelectedTracks()
+        val positions = ArrayList<Int>()
+        selectedTracks.forEach { track ->
+            val position = items.indexOfFirstOrNull { it.mediaStoreId == track.mediaStoreId }
+            if (position != null) {
+                positions.add(position)
             }
+        }
+        val mediaIds = selectedTracks.map { it.mediaStoreId }
+        val removedTrackIds = selectedTracks
+            .filter { it.playListId == ALL_TRACKS_PLAYLIST_ID }
+            .map { it.mediaStoreId.toString() }
 
-            val mediaIds = selectedTracks.map { it.mediaStoreId }
-            context.audioHelper.removeTracksFromPlaylist(playlist.id, mediaIds)
-            // this is to make sure these tracks aren't automatically re-added to the 'All tracks' playlist on rescan
-            val removedTrackIds = selectedTracks.filter { it.playListId == ALL_TRACKS_PLAYLIST_ID }.map { it.mediaStoreId.toString() }
-            if (removedTrackIds.isNotEmpty()) {
-                val config = context.config
-                config.tracksRemovedFromAllTracksPlaylist = config.tracksRemovedFromAllTracksPlaylist.apply {
-                    addAll(removedTrackIds)
+        context.lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                context.audioHelper.removeTracksFromPlaylist(playlist.id, mediaIds)
+                if (removedTrackIds.isNotEmpty()) {
+                    context.config.tracksRemovedFromAllTracksPlaylist =
+                        context.config.tracksRemovedFromAllTracksPlaylist.apply {
+                            addAll(removedTrackIds)
+                        }
                 }
             }
 
             EventBus.getDefault().post(Events.PlaylistsUpdated())
-            context.runOnUiThread {
-                positions.sortDescending()
-                removeSelectedItems(positions)
-                positions.forEach {
-                    items.removeAt(it)
-                }
+            positions.sortDescending()
+            removeSelectedItems(positions)
+            positions.forEach {
+                items.removeAt(it)
             }
         }
     }
@@ -246,11 +251,16 @@ class TracksAdapter(
     override fun onRowSelected(myViewHolder: ViewHolder?) {}
 
     override fun onRowClear(myViewHolder: ViewHolder?) {
-        ensureBackgroundThread {
-            var index = 0
-            items.forEach {
-                it.orderInPlaylist = index++
-                context.audioHelper.updateOrderInPlaylist(index, it.id)
+        val updates = items.mapIndexed { index, track ->
+            track.orderInPlaylist = index
+            track.id to index + 1
+        }
+
+        context.lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                updates.forEach { (trackId, order) ->
+                    context.audioHelper.updateOrderInPlaylist(order, trackId)
+                }
             }
         }
     }
