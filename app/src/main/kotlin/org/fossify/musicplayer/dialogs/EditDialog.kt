@@ -1,6 +1,10 @@
 package org.fossify.musicplayer.dialogs
 
 import androidx.appcompat.app.AlertDialog
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.extensions.*
 import org.fossify.commons.helpers.ensureBackgroundThread
@@ -84,9 +88,11 @@ class EditDialog(val activity: BaseSimpleActivity, val track: Track, val callbac
     }
 
     private fun storeEditedSong(track: Track, oldPath: String, newPath: String) {
-        ensureBackgroundThread {
+        activity.lifecycleScope.launch {
             try {
-                activity.audioHelper.updateTrackInfo(newPath, track.artist, track.title, oldPath)
+                withContext(Dispatchers.IO) {
+                    activity.audioHelper.updateTrackInfo(newPath, track.artist, track.title, oldPath)
+                }
             } catch (e: Exception) {
                 activity.showErrorToast(e)
             }
