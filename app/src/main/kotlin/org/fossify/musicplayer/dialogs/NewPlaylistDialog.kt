@@ -1,16 +1,19 @@
 package org.fossify.musicplayer.dialogs
 
-import android.app.Activity
 import androidx.appcompat.app.AlertDialog
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.extensions.*
-import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.musicplayer.R
 import org.fossify.musicplayer.databinding.DialogNewPlaylistBinding
 import org.fossify.musicplayer.extensions.audioHelper
 import org.fossify.musicplayer.extensions.getPlaylistIdWithTitle
 import org.fossify.musicplayer.models.Playlist
 
-class NewPlaylistDialog(val activity: Activity, var playlist: Playlist? = null, val callback: (playlistId: Int) -> Unit) {
+class NewPlaylistDialog(val activity: BaseSimpleActivity, var playlist: Playlist? = null, val callback: (playlistId: Int) -> Unit) {
     private var isNewPlaylist = playlist == null
     private val binding by activity.viewBinding(DialogNewPlaylistBinding::inflate)
 
@@ -29,28 +32,34 @@ class NewPlaylistDialog(val activity: Activity, var playlist: Playlist? = null, 
                     alertDialog.showKeyboard(binding.newPlaylistTitle)
                     alertDialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                         val title = binding.newPlaylistTitle.value
-                        ensureBackgroundThread {
-                            val playlistIdWithTitle = activity.getPlaylistIdWithTitle(title)
-                            var isPlaylistTitleTaken = isNewPlaylist && playlistIdWithTitle != -1
-                            if (!isPlaylistTitleTaken) {
-                                isPlaylistTitleTaken = !isNewPlaylist && playlist!!.id != playlistIdWithTitle && playlistIdWithTitle != -1
+                        if (title.isEmpty()) {
+                            activity.toast(org.fossify.commons.R.string.empty_name)
+                            return@setOnClickListener
+                        }
+
+                        activity.lifecycleScope.launch {
+                            val playlistIdWithTitle = withContext(Dispatchers.IO) {
+                                activity.getPlaylistIdWithTitle(title)
+                            }
+                            val isPlaylistTitleTaken = if (isNewPlaylist) {
+                                playlistIdWithTitle != -1
+                            } else {
+                                playlist!!.id != playlistIdWithTitle && playlistIdWithTitle != -1
                             }
 
-                            if (title.isEmpty()) {
-                                activity.toast(org.fossify.commons.R.string.empty_name)
-                                return@ensureBackgroundThread
-                            } else if (isPlaylistTitleTaken) {
+                            if (isPlaylistTitleTaken) {
                                 activity.toast(R.string.playlist_name_exists)
-                                return@ensureBackgroundThread
+                                return@launch
                             }
 
                             playlist!!.title = title
-
-                            val eventTypeId = if (isNewPlaylist) {
-                                activity.audioHelper.insertPlaylist(playlist!!).toInt()
-                            } else {
-                                activity.audioHelper.updatePlaylist(playlist!!)
-                                playlist!!.id
+                            val eventTypeId = withContext(Dispatchers.IO) {
+                                if (isNewPlaylist) {
+                                    activity.audioHelper.insertPlaylist(playlist!!).toInt()
+                                } else {
+                                    activity.audioHelper.updatePlaylist(playlist!!)
+                                    playlist!!.id
+                                }
                             }
 
                             if (eventTypeId != -1) {

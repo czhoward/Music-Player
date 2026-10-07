@@ -1,9 +1,12 @@
 package org.fossify.musicplayer.dialogs
 
 import androidx.appcompat.app.AlertDialog
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.fossify.commons.dialogs.FilePickerDialog
 import org.fossify.commons.extensions.*
-import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.musicplayer.R
 import org.fossify.musicplayer.activities.SimpleActivity
 import org.fossify.musicplayer.databinding.DialogExportPlaylistBinding
@@ -58,8 +61,10 @@ class ExportPlaylistDialog(
                                 }
 
                                 ignoreClicks = true
-                                ensureBackgroundThread {
+                                activity.lifecycleScope.launch {
+                                    withContext(Dispatchers.IO) {
                                     activity.config.lastExportPath = file.absolutePath.getParentPath()
+                                    }
                                     callback(file)
                                     alertDialog.dismiss()
                                 }
