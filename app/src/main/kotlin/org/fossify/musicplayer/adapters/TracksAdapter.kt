@@ -149,16 +149,16 @@ class TracksAdapter(
 
     private fun askConfirmDelete() {
         ConfirmationDialog(context) {
-            ensureBackgroundThread {
-                val positions = ArrayList<Int>()
-                val selectedTracks = getSelectedTracks()
-                selectedTracks.forEach { track ->
-                    val position = items.indexOfFirst { it.mediaStoreId == track.mediaStoreId }
-                    if (position != -1) {
-                        positions.add(position)
-                    }
+            val selectedTracks = getSelectedTracks()
+            val positions = ArrayList<Int>()
+            selectedTracks.forEach { track ->
+                val position = items.indexOfFirst { it.mediaStoreId == track.mediaStoreId }
+                if (position != -1) {
+                    positions.add(position)
                 }
+            }
 
+            ensureBackgroundThread {
                 context.deleteTracks(selectedTracks) {
                     context.runOnUiThread {
                         positions.sortDescending()
