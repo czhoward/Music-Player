@@ -4,7 +4,11 @@ import android.annotation.SuppressLint
 import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
+import androidx.lifecycle.lifecycleScope
 import com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.fossify.commons.dialogs.ConfirmationDialog
 import org.fossify.commons.extensions.beGone
 import org.fossify.commons.extensions.beVisible
@@ -161,16 +165,14 @@ class TracksHeaderAdapter(activity: SimpleActivity, items: ArrayList<ListItem>, 
                 it.setTextColor(textColor)
             }
 
-            ensureBackgroundThread {
-                val album = context.audioHelper.getAlbum(header.id)
+            context.lifecycleScope.launch {
+                val album = withContext(Dispatchers.IO) { context.audioHelper.getAlbum(header.id) }
                 if (album != null) {
                     context.getAlbumCoverArt(album) { coverArt ->
                         loadImage(albumImage, coverArt, placeholderBig)
                     }
                 } else {
-                    context.runOnUiThread {
-                        albumImage.setImageDrawable(placeholderBig)
-                    }
+                    albumImage.setImageDrawable(placeholderBig)
                 }
             }
         }

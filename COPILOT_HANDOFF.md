@@ -33,6 +33,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Added `awaitFolderTracks()` to bridge the callback-based folder scanner to suspension; `MainActivity` and `TracksActivity` now await folder results in lifecycle scopes and perform playlist writes/refresh queries on IO.
 - Converted the shared add-to-playlist Room insert and playlist-row deletion to Activity lifecycle IO; adapter selection reads for queue/properties actions now stay on main.
 - Kept `BaseMusicAdapter` selection reads and share-intent launch on main, removing unnecessary background/UI hops.
+- Moved `TracksHeaderAdapter`'s album lookup to the Activity lifecycle IO scope while keeping artwork loading on its existing callback path.
 - Converted `SelectPlaylistDialog`'s playlist query to the host `BaseSimpleActivity` lifecycle scope and IO dispatcher.
 - Converted `NewPlaylistDialog` duplicate-title checks and Room create/rename operations to lifecycle-owned IO while keeping dialog feedback on main.
 - Kept `ExportPlaylistDialog` callbacks on main for picker/file-stream work and moved its export-path preference update to lifecycle IO.
@@ -48,7 +49,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 
 Current uncommitted work on `main`:
 
-- `app/src/main/kotlin/org/fossify/musicplayer/adapters/TracksAdapter.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/adapters/TracksHeaderAdapter.kt`
 - `COPILOT_HANDOFF.md`
 
 ## Environment and Validation Notes
@@ -62,7 +63,7 @@ Current uncommitted work on `main`:
 ## Recommended Next Steps
 
 1. Add an instrumentation or controlled MediaStore scan test and cover Android system-level foreground-service behavior.
-2. Continue replacing remaining callback-heavy `ensureBackgroundThread` uses with lifecycle-owned structured concurrency where practical; playlist, folder, and adapter removal/reorder writes are converted. MediaStore deletion and permission-sensitive tag-edit flows remain callback-based.
+2. Continue replacing remaining callback-heavy `ensureBackgroundThread` uses with lifecycle-owned structured concurrency where practical; playlist, folder, adapter removal/reorder writes, and the album-header query are converted. MediaStore deletion and permission-sensitive tag-edit flows remain callback-based.
 3. Review whether any remaining one-shot EventBus invalidations need a state-holder; recurring sleep-timer state has already moved to `StateFlow`.
 4. Review remaining deprecated Media3 workarounds; the current shuffle-order next-item behavior is regression-covered but still depends on the deprecated API.
 5. Decide the new minimum supported Android version, then review storage permissions and manifest compatibility against that floor.
@@ -99,6 +100,7 @@ Current uncommitted work on `main`:
 - [x] Move shared playlist inserts and playlist-row deletion to lifecycle-owned IO; keep adapter selection reads on main.
 - [x] Keep adapter-owned queue/properties selection and share-intent operations on main.
 - [x] Move TracksAdapter playlist removal and reorder Room writes to lifecycle-owned IO.
+- [x] Move the TracksHeaderAdapter album lookup to lifecycle-owned IO.
 - [x] Move `SelectPlaylistDialog`'s Room query into the host Activity lifecycle scope.
 - [x] Move playlist create/rename database work into the dialog Activity lifecycle scope.
 - [x] Keep export callbacks on main and move export-path persistence to lifecycle IO.
