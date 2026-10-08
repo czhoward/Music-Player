@@ -99,15 +99,21 @@ class AlbumsTracksAdapter(
 
     private fun askConfirmDelete() {
         ConfirmationDialog(context) {
+            val selectedTracks = getSelectedTracks()
+            val selectedAlbums = getSelectedAlbums()
+            val itemsSnapshot = items.toList()
+
             ensureBackgroundThread {
+                val tracksToDelete = selectedTracks + context.audioHelper.getAlbumTracks(selectedAlbums)
                 val positions = ArrayList<Int>()
-                val selectedTracks = getAllSelectedTracks()
-                val selectedAlbums = getSelectedAlbums()
+                positions += tracksToDelete.mapNotNull { track ->
+                    itemsSnapshot.indexOfFirstOrNull { it is Track && it.mediaStoreId == track.mediaStoreId }
+                }
+                positions += selectedAlbums.mapNotNull { album ->
+                    itemsSnapshot.indexOfFirstOrNull { it is Album && it.id == album.id }
+                }
 
-                positions += selectedTracks.mapNotNull { track -> items.indexOfFirstOrNull { it is Track && it.mediaStoreId == track.mediaStoreId } }
-                positions += selectedAlbums.mapNotNull { album -> items.indexOfFirstOrNull { it is Album && it.id == album.id } }
-
-                context.deleteTracks(selectedTracks) {
+                context.deleteTracks(tracksToDelete) {
                     context.runOnUiThread {
                         positions.sortDescending()
                         removeSelectedItems(positions)
