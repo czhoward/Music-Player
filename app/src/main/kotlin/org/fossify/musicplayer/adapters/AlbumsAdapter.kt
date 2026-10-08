@@ -56,9 +56,12 @@ class AlbumsAdapter(activity: BaseSimpleActivity, items: ArrayList<Album>, recyc
 
     private fun askConfirmDelete() {
         ConfirmationDialog(context) {
+            val selectedAlbums = getSelectedItems()
+            val positions = ArrayList(selectedAlbums.mapNotNull { album ->
+                items.indexOfFirstOrNull { it.id == album.id }
+            })
+
             ensureBackgroundThread {
-                val selectedAlbums = getSelectedItems()
-                val positions = selectedAlbums.mapNotNull { album -> items.indexOfFirstOrNull { it.id == album.id } } as ArrayList<Int>
                 val tracks = context.audioHelper.getAlbumTracks(selectedAlbums)
                 context.audioHelper.deleteAlbums(selectedAlbums)
 

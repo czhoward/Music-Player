@@ -58,9 +58,12 @@ class ArtistsAdapter(activity: BaseSimpleActivity, items: ArrayList<Artist>, rec
 
     private fun askConfirmDelete() {
         ConfirmationDialog(context) {
+            val selectedArtists = getSelectedItems()
+            val positions = ArrayList(selectedArtists.mapNotNull { artist ->
+                items.indexOfFirstOrNull { it.id == artist.id }
+            })
+
             ensureBackgroundThread {
-                val selectedArtists = getSelectedItems()
-                val positions = selectedArtists.mapNotNull { artist -> items.indexOfFirstOrNull { it.id == artist.id } } as ArrayList<Int>
                 val tracks = context.audioHelper.getArtistTracks(selectedArtists)
 
                 context.audioHelper.deleteArtists(selectedArtists)

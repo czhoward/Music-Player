@@ -56,9 +56,12 @@ class GenresAdapter(activity: BaseSimpleActivity, items: ArrayList<Genre>, recyc
 
     private fun askConfirmDelete() {
         ConfirmationDialog(context) {
+            val selectedGenres = getSelectedItems()
+            val positions = ArrayList(selectedGenres.mapNotNull { genre ->
+                items.indexOfFirstOrNull { it.id == genre.id }
+            })
+
             ensureBackgroundThread {
-                val selectedGenres = getSelectedItems()
-                val positions = selectedGenres.mapNotNull { genre -> items.indexOfFirstOrNull { it.id == genre.id } } as ArrayList<Int>
                 val tracks = context.audioHelper.getGenreTracks(selectedGenres)
                 context.audioHelper.deleteGenres(selectedGenres)
 
