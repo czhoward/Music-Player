@@ -4,10 +4,14 @@ import android.annotation.SuppressLint
 import android.graphics.drawable.Drawable
 import android.view.Menu
 import android.widget.ImageView
+import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.CenterCrop
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.bumptech.glide.request.RequestOptions
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.adapters.MyRecyclerViewAdapter
 import org.fossify.commons.extensions.getProperPrimaryColor
@@ -93,35 +97,46 @@ abstract class BaseMusicAdapter<Type>(
     }
 
     fun addToQueue() {
-        val allSelectedTracks = getAllSelectedTracks()
-        context.addTracksToQueue(allSelectedTracks) {
-            finishActMode()
+        context.lifecycleScope.launch {
+            val allSelectedTracks = withContext(Dispatchers.IO) { getAllSelectedTracks() }
+            context.addTracksToQueue(allSelectedTracks) {
+                context.runOnUiThread { finishActMode() }
+            }
         }
     }
 
     fun playNextInQueue() {
-        val selectedTrack = getSelectedTracks().firstOrNull() ?: return
-        context.playNextInQueue(selectedTrack) {
-            finishActMode()
+        context.lifecycleScope.launch {
+            val selectedTrack = withContext(Dispatchers.IO) { getSelectedTracks().firstOrNull() } ?: return@launch
+            context.playNextInQueue(selectedTrack) {
+                context.runOnUiThread { finishActMode() }
+            }
         }
     }
 
     fun addToPlaylist() {
-        val allSelectedTracks = getAllSelectedTracks()
-        context.addTracksToPlaylist(allSelectedTracks) {
-            finishActMode()
-            notifyDataChanged()
+        context.lifecycleScope.launch {
+            val allSelectedTracks = withContext(Dispatchers.IO) { getAllSelectedTracks() }
+            context.addTracksToPlaylist(allSelectedTracks) {
+                finishActMode()
+                notifyDataChanged()
+            }
         }
     }
 
     fun shareFiles() {
-        context.shareFiles(getAllSelectedTracks())
+        context.lifecycleScope.launch {
+            val allSelectedTracks = withContext(Dispatchers.IO) { getAllSelectedTracks() }
+            context.shareFiles(allSelectedTracks)
+        }
     }
 
     fun showProperties() {
-        val selectedTracks = getAllSelectedTracks()
-        if (selectedTracks.isNotEmpty()) {
-            context.showTrackProperties(selectedTracks)
+        context.lifecycleScope.launch {
+            val selectedTracks = withContext(Dispatchers.IO) { getAllSelectedTracks() }
+            if (selectedTracks.isNotEmpty()) {
+                context.showTrackProperties(selectedTracks)
+            }
         }
     }
 
