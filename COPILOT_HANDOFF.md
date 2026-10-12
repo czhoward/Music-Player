@@ -19,6 +19,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Audited EventBus use: playlist, track, and fragment refreshes remain one-shot invalidations; recurring timer state is now modeled explicitly.
 - Added Robolectric coverage for empty and seeded-Room library reloads, `PlaybackService.onCreate()` initialization, and fallback notification delivery when foreground start is blocked.
 - Added player-level Robolectric coverage for inserting a new next item, moving an existing queued item, and preserving next-item behavior under a deterministic shuffle order.
+- Added a controlled API 28 Robolectric MediaStore scan test covering track, artist, album, genre, and all-tracks playlist persistence.
 - Converted source-track loading in `TracksActivity` to lifecycle-owned IO coroutine work, keeping adapter updates and placeholder state on the main dispatcher.
 - Converted `TracksActivity`'s file-to-playlist validation, MediaStore/Room lookup, and playlist insert to lifecycle-owned IO; retained the existing path-rescan callback.
 - Converted third-party URI track resolution to a cancellable suspend lookup on IO, consumed by `TrackActivity`'s lifecycle scope.
@@ -57,19 +58,20 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Reformatted a long `AlbumHeader` constructor call in `TracksActivity` to satisfy Detekt.
 - Compiled the `coreDebug`, `fossDebug`, and `gplayDebug` variants successfully.
 - Ran lint successfully for all three debug variants and Detekt successfully across 105 Kotlin files.
-- Ran the core JVM/Robolectric unit tests successfully: 13 tests, 0 failures.
+- Ran the core JVM/Robolectric unit tests successfully: 14 tests, 0 failures.
 - Verified the final patch with `git diff --check`.
 
 ## Current Working Tree
 
 Current uncommitted work on `main`:
 
-- `app/src/main/kotlin/org/fossify/musicplayer/views/CurrentTrackBar.kt`
+- `app/src/test/kotlin/org/fossify/musicplayer/helpers/SimpleMediaScannerTest.kt`
 - `COPILOT_HANDOFF.md`
 
 ## Environment and Validation Notes
 
 - Java 17 is available at `/usr/lib/jvm/java-17-openjdk-amd64`.
+- ripgrep (rg) is now available at `/usr/bin/rg`.
 - `ANDROID_HOME` is `/home/vagrant/android-sdk`; API 36 and Build-Tools 36 were installed there. `local.properties` is intentionally absent.
 - The host now has 3.8 GiB RAM (about 2.8 GiB available at last check). Earlier combined builds OOM-killed daemons when the host had 1.9 GiB. Serial builds with a 1 GiB Gradle heap and Kotlin compilation in-process have passed; the repository default heap is 8 GiB.
 - Lint passes with the existing baseline, which suppresses 6 errors and 194 warnings; core reports 16 warnings and FOSS/GPlay report 18 each. Four lint baseline entries no longer match current findings and should be reviewed separately.
@@ -77,7 +79,7 @@ Current uncommitted work on `main`:
 
 ## Recommended Next Steps
 
-1. Add an instrumentation or controlled MediaStore scan test and cover Android system-level foreground-service behavior.
+1. Cover Android system-level foreground-service behavior; controlled MediaStore scan coverage is now in Robolectric.
 2. Review the remaining generic `Context` artwork fallback for non-Activity callers and `AudioHelper.getQueuedTracksLazily()` worker callback; preserve their contracts unless converting their callers together.
 3. Review whether any remaining one-shot EventBus invalidations need a state-holder; recurring sleep-timer state has already moved to `StateFlow`.
 4. Retain the tested ExoPlayer shuffle-order workaround until AndroidX Media exposes shuffle-order control through `Player` (issue 325 remains open).
@@ -97,6 +99,7 @@ Current uncommitted work on `main`:
 - [x] Cover successful empty-library reload and playback-service `onCreate()` initialization.
 - [x] Verify a seeded Room track is published by provider reload.
 - [x] Add player-level queue insertion and reordering tests.
+- [x] Add a controlled Robolectric MediaStore scan test for imported library metadata and playlist persistence.
 
 ### P1: Remove Legacy Surfaces
 
