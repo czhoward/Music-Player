@@ -13,6 +13,7 @@ import android.provider.MediaStore
 import android.provider.MediaStore.Audio
 import android.util.Size
 import androidx.core.net.toUri
+import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.Player
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
@@ -23,7 +24,9 @@ import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.target.Target
 import com.bumptech.glide.request.transition.Transition
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.extensions.*
 import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.helpers.isQPlus
@@ -139,6 +142,41 @@ private fun getFolderTrackPaths(folder: File): ArrayList<String> {
     return trackFiles
 }
 
+fun BaseSimpleActivity.getArtistCoverArt(artist: Artist, callback: (coverArt: Any?) -> Unit) {
+    loadCategoryCoverArt(artist.albumArt, { audioHelper.getArtistTracks(artist.id).firstOrNull() }, callback)
+}
+
+fun BaseSimpleActivity.getAlbumCoverArt(album: Album, callback: (coverArt: Any?) -> Unit) {
+    loadCategoryCoverArt(album.coverArt, { audioHelper.getAlbumTracks(album.id).firstOrNull() }, callback)
+}
+
+fun BaseSimpleActivity.getGenreCoverArt(genre: Genre, callback: (coverArt: Any?) -> Unit) {
+    loadCategoryCoverArt(genre.albumArt, { audioHelper.getGenreTracks(genre.id).firstOrNull() }, callback)
+}
+
+private fun BaseSimpleActivity.loadCategoryCoverArt(
+    coverArt: String,
+    getTrack: () -> Track?,
+    callback: (coverArt: Any?) -> Unit
+) {
+    lifecycleScope.launch {
+        callback(withContext(Dispatchers.IO) {
+            if (coverArt.isEmpty()) resolveTrackCoverArt(getTrack()) else coverArt
+        })
+    }
+}
+
+fun BaseSimpleActivity.getTrackCoverArt(track: Track?, callback: (coverArt: Any?) -> Unit) {
+    lifecycleScope.launch {
+        callback(withContext(Dispatchers.IO) { resolveTrackCoverArt(track) })
+    }
+}
+
+private fun Context.resolveTrackCoverArt(track: Track?): Any? {
+    if (track == null) return null
+    return track.coverArt.ifEmpty { loadTrackCoverArt(track) }
+}
+
 fun Context.getArtistCoverArt(artist: Artist, callback: (coverArt: Any?) -> Unit) {
     ensureBackgroundThread {
         if (artist.albumArt.isEmpty()) {
@@ -187,9 +225,7 @@ fun Context.getTrackCoverArt(track: Track?, callback: (coverArt: Any?) -> Unit) 
             return@ensureBackgroundThread
         }
 
-        val coverArt = track.coverArt.ifEmpty {
-            loadTrackCoverArt(track)
-        }
+        val coverArt = resolveTrackCoverArt(track)
 
         Handler(Looper.getMainLooper()).post {
             callback(coverArt)
