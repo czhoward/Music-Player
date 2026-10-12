@@ -1,8 +1,8 @@
 package org.fossify.musicplayer.views
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.provider.MediaStore
 import android.util.AttributeSet
 import android.widget.RelativeLayout
@@ -11,6 +11,7 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.CenterCrop
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.bumptech.glide.request.RequestOptions
+import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.extensions.*
 import org.fossify.musicplayer.R
 import org.fossify.musicplayer.databinding.ViewCurrentTrackBarBinding
@@ -54,17 +55,31 @@ class CurrentTrackBar(context: Context, attributeSet: AttributeSet) : RelativeLa
             .error(currentTrackPlaceholder)
             .transform(CenterCrop(), RoundedCorners(cornerRadius))
 
-        context.getTrackCoverArt(track) { coverArt ->
-            (context as? Activity)?.ensureActivityNotDestroyed {
+        val activity = context.findBaseSimpleActivity()
+        val onCoverArtLoaded: (Any?) -> Unit = { coverArt ->
+            activity?.ensureActivityNotDestroyed {
                 Glide.with(this)
                     .load(coverArt)
                     .apply(options)
                     .into(findViewById(R.id.current_track_image))
             }
         }
+        if (activity != null) {
+            activity.getTrackCoverArt(track, onCoverArtLoaded)
+        } else {
+            context.getTrackCoverArt(track, onCoverArtLoaded)
+        }
     }
 
     fun updateTrackState(isPlaying: Boolean) {
         binding.currentTrackPlayPause.updatePlayPauseIcon(isPlaying, context.getProperTextColor())
+    }
+
+    private fun Context.findBaseSimpleActivity(): BaseSimpleActivity? {
+        var currentContext = this
+        while (currentContext !is BaseSimpleActivity) {
+            currentContext = (currentContext as? ContextWrapper)?.baseContext ?: return null
+        }
+        return currentContext
     }
 }

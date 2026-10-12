@@ -31,7 +31,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Removed the redundant `ensureBackgroundThread` wrapper from player preparation because `AudioHelper.getQueuedTracksLazily()` already owns background dispatch.
 - Removed stale `ensureBackgroundThread` imports from `Activity.kt` and `SimpleControllerActivity.kt` after their prior coroutine conversions.
 - Replaced `TrackActivity`'s blocking Glide `FutureTarget.get()` path with an asynchronous `CustomTarget` request managed by the Activity's Glide request manager.
-- Added lifecycle-owned IO artwork lookups for Activity and adapter callers; retained the generic `Context` callback fallback for `CurrentTrackBar`.
+- Added lifecycle-owned IO artwork lookups for Activity, adapter, and `CurrentTrackBar` callers; the view unwraps themed contexts and retains a generic fallback when no app Activity is available.
 - Reviewed the deprecated shuffle-order workaround; AndroidX Media issue 325 remains open, so the tested ExoPlayer-specific implementation stays until a public `Player` API exists.
 - Replaced `SimpleMediaController`'s single-thread executor and blocking controller-future reads with completion listeners; callbacks now wait for an available connected controller, and releasing before first acquisition is safe.
 - Added `addListenerWithResult` and a regression test proving callbacks run only after their future completes.
@@ -64,7 +64,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 
 Current uncommitted work on `main`:
 
-- `app/src/main/kotlin/org/fossify/musicplayer/extensions/Context.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/views/CurrentTrackBar.kt`
 - `COPILOT_HANDOFF.md`
 
 ## Environment and Validation Notes
@@ -78,7 +78,7 @@ Current uncommitted work on `main`:
 ## Recommended Next Steps
 
 1. Add an instrumentation or controlled MediaStore scan test and cover Android system-level foreground-service behavior.
-2. Review the remaining generic `Context` artwork fallback and `AudioHelper.getQueuedTracksLazily()` worker callback; preserve their contracts unless converting their callers together.
+2. Review the remaining generic `Context` artwork fallback for non-Activity callers and `AudioHelper.getQueuedTracksLazily()` worker callback; preserve their contracts unless converting their callers together.
 3. Review whether any remaining one-shot EventBus invalidations need a state-holder; recurring sleep-timer state has already moved to `StateFlow`.
 4. Retain the tested ExoPlayer shuffle-order workaround until AndroidX Media exposes shuffle-order control through `Player` (issue 325 remains open).
 5. Decide the new minimum supported Android version, then review storage permissions and manifest compatibility against that floor.
