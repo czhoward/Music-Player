@@ -21,7 +21,6 @@ import org.fossify.commons.dialogs.FilePickerDialog
 import org.fossify.commons.dialogs.PermissionRequiredDialog
 import org.fossify.commons.extensions.*
 import org.fossify.commons.helpers.NavigationIcon
-import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.helpers.isQPlus
 import org.fossify.musicplayer.R
 import org.fossify.musicplayer.adapters.TracksAdapter
@@ -297,9 +296,9 @@ class TracksActivity : SimpleMusicActivity() {
 
     private fun addFileToPlaylist() {
         FilePickerDialog(this, lastFilePickerPath, enforceStorageRestrictions = false) { path ->
-            ensureBackgroundThread {
-                lastFilePickerPath = path
-                if (path.isAudioFast()) {
+            lastFilePickerPath = path
+            lifecycleScope.launch {
+                if (withContext(Dispatchers.IO) { path.isAudioFast() }) {
                     addTrackFromPath(path, true)
                 } else {
                     toast(org.fossify.commons.R.string.invalid_file_format)
@@ -309,26 +308,38 @@ class TracksActivity : SimpleMusicActivity() {
     }
 
     private fun addTrackFromPath(path: String, rescanWrongPath: Boolean) {
-        val mediaStoreId = getMediaStoreIdFromPath(path)
-        if (mediaStoreId == 0L) {
-            if (rescanWrongPath) {
-                rescanPaths(arrayListOf(path)) {
-                    addTrackFromPath(path, false)
+        lifecycleScope.launch {
+            val playlistId = playlist?.id ?: return@launch
+            val mediaStoreId = withContext(Dispatchers.IO) { getMediaStoreIdFromPath(path) }
+            if (mediaStoreId == 0L) {
+                if (rescanWrongPath) {
+                    withContext(Dispatchers.IO) {
+                        rescanPaths(arrayListOf(path)) {
+                            addTrackFromPath(path, false)
+                        }
+                    }
+                } else {
+                    toast(org.fossify.commons.R.string.unknown_error_occurred)
                 }
             } else {
-                toast(org.fossify.commons.R.string.unknown_error_occurred)
-            }
-        } else {
-            var track = audioHelper.getTrack(mediaStoreId)
-            if (track == null) {
-                track = RoomHelper(this).getTrackFromPath(path)
-            }
+                val trackAdded = withContext(Dispatchers.IO) {
+                    var track = audioHelper.getTrack(mediaStoreId)
+                    if (track == null) {
+                        track = RoomHelper(this@TracksActivity).getTrackFromPath(path)
+                    }
 
-            if (track != null) {
-                track.id = 0
-                track.playListId = playlist!!.id
-                audioHelper.insertTracks(listOf(track))
-                refreshPlaylist()
+                    if (track != null) {
+                        track.id = 0
+                        track.playListId = playlistId
+                        audioHelper.insertTracks(listOf(track))
+                        true
+                    } else {
+                        false
+                    }
+                }
+                if (trackAdded) {
+                    refreshPlaylist()
+                }
             }
         }
     }
