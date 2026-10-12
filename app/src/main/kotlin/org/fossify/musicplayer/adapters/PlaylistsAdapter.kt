@@ -11,7 +11,6 @@ import kotlinx.coroutines.withContext
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.extensions.highlightTextPart
 import org.fossify.commons.extensions.setupViewBackground
-import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.views.MyRecyclerView
 import org.fossify.musicplayer.R
 import org.fossify.musicplayer.databinding.ItemPlaylistBinding
@@ -62,8 +61,10 @@ class PlaylistsAdapter(
             val playlists = getSelectedItems().toMutableList() as ArrayList<Playlist>
             val ids = playlists.map { it.id } as ArrayList<Int>
             if (deleteFiles) {
-                ensureBackgroundThread {
-                    val tracksToDelete = ids.flatMap { context.audioHelper.getPlaylistTracks(it) }
+                context.lifecycleScope.launch {
+                    val tracksToDelete = withContext(Dispatchers.IO) {
+                        ids.flatMap { context.audioHelper.getPlaylistTracks(it) }
+                    }
                     context.deleteTracks(tracksToDelete) {
                         removePlaylists(playlists)
                     }
