@@ -7,7 +7,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.extensions.*
-import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.helpers.isRPlus
 import org.fossify.musicplayer.R
 import org.fossify.musicplayer.databinding.DialogRenameSongBinding
@@ -100,13 +99,19 @@ class EditDialog(val activity: BaseSimpleActivity, val track: Track, val callbac
     }
 
     private fun updateContentResolver(track: Track, newArtist: String, newTitle: String, newAlbum: String, onUpdateMediaStore: () -> Unit) {
-        ensureBackgroundThread {
+        activity.lifecycleScope.launch {
             try {
                 activity.handleRecoverableSecurityException { granted ->
                     if (granted) {
-                        tagHelper.writeTag(track, newArtist, newTitle, newAlbum)
-                        activity.runOnUiThread {
-                            onUpdateMediaStore.invoke()
+                        activity.lifecycleScope.launch {
+                            try {
+                                withContext(Dispatchers.IO) {
+                                    tagHelper.writeTag(track, newArtist, newTitle, newAlbum)
+                                }
+                                onUpdateMediaStore()
+                            } catch (e: Exception) {
+                                activity.toast(org.fossify.commons.R.string.unknown_error_occurred)
+                            }
                         }
                     }
                 }
