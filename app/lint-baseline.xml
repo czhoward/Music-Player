@@ -40,8 +40,8 @@
         errorLine1="app-build-targetSDK = &quot;36&quot;"
         errorLine2="                      ~~~~">
         <location
-            file="$HOME/work/Music-Player/Music-Player/gradle/libs.versions.toml"
-            line="30"
+            file="../gradle/libs.versions.toml"
+            line="34"
             column="23"/>
     </issue>
 
@@ -84,7 +84,7 @@
         errorLine1="androidx-lifecycleprocess = &quot;2.10.0&quot;"
         errorLine2="                            ~~~~~~~~">
         <location
-            file="$HOME/work/Music-Player/Music-Player/gradle/libs.versions.toml"
+            file="../gradle/libs.versions.toml"
             line="15"
             column="29"/>
     </issue>
@@ -95,8 +95,8 @@
         errorLine1="app-build-compileSDKVersion = &quot;36&quot;"
         errorLine2="                              ~~~~">
         <location
-            file="$HOME/work/Music-Player/Music-Player/gradle/libs.versions.toml"
-            line="29"
+            file="../gradle/libs.versions.toml"
+            line="33"
             column="31"/>
     </issue>
 
@@ -113,11 +113,11 @@
 
     <issue
         id="NewerVersionAvailable"
-        message="A newer version of io.nlopez.compose.rules:detekt than 0.4.28 is available: 0.6.2"
+        message="A newer version of io.nlopez.compose.rules:detekt than 0.4.28 is available: 0.6.8"
         errorLine1="detektCompose = &quot;0.4.28&quot;"
         errorLine2="                ~~~~~~~~">
         <location
-            file="$HOME/work/Music-Player/Music-Player/gradle/libs.versions.toml"
+            file="../gradle/libs.versions.toml"
             line="11"
             column="17"/>
     </issue>
