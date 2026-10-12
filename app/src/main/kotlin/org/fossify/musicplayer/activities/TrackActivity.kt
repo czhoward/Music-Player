@@ -16,6 +16,7 @@ import androidx.core.graphics.drawable.toDrawable
 import androidx.core.graphics.scale
 import androidx.core.os.postDelayed
 import androidx.core.view.GestureDetectorCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
 import com.bumptech.glide.load.resource.bitmap.CenterCrop
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners
@@ -172,14 +173,13 @@ class TrackActivity : SimpleControllerActivity(), PlaybackSpeedListener {
     }
 
     private fun initThirdPartyIntent() {
-        getTrackFromUri(intent.data) { track ->
-            runOnUiThread {
-                if (track != null) {
-                    prepareAndPlay(listOf(track), startActivity = false)
-                } else {
-                    toast(org.fossify.commons.R.string.unknown_error_occurred)
-                    finish()
-                }
+        lifecycleScope.launch {
+            val track = getTrackFromUri(intent.data)
+            if (track != null) {
+                prepareAndPlay(listOf(track), startActivity = false)
+            } else {
+                toast(org.fossify.commons.R.string.unknown_error_occurred)
+                finish()
             }
         }
     }

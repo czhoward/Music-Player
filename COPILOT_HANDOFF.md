@@ -21,6 +21,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Added player-level Robolectric coverage for inserting a new next item, moving an existing queued item, and preserving next-item behavior under a deterministic shuffle order.
 - Converted source-track loading in `TracksActivity` to lifecycle-owned IO coroutine work, keeping adapter updates and placeholder state on the main dispatcher.
 - Converted `TracksActivity`'s file-to-playlist validation, MediaStore/Room lookup, and playlist insert to lifecycle-owned IO; retained the existing path-rescan callback.
+- Converted third-party URI track resolution to a cancellable suspend lookup on IO, consumed by `TrackActivity`'s lifecycle scope.
 - Converted the direct Room-backed loads in the Albums, Artists, Folders, Genres, and Playlists pager views to the hosting Activity's lifecycle scope with IO queries and main-thread rendering.
 - Converted `SimpleControllerActivity.refreshQueueAndTracks()` to fetch queue tracks in `Dispatchers.IO` and resume player updates from the Activity lifecycle scope.
 - Replaced `SimpleMediaController`'s single-thread executor and blocking controller-future reads with completion listeners; callbacks now wait for an available connected controller, and releasing before first acquisition is safe.
@@ -53,7 +54,8 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 
 Current uncommitted work on `main`:
 
-- `app/src/main/kotlin/org/fossify/musicplayer/activities/TracksActivity.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/activities/TrackActivity.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/extensions/Context.kt`
 - `COPILOT_HANDOFF.md`
 
 ## Environment and Validation Notes
@@ -97,6 +99,7 @@ Current uncommitted work on `main`:
 - [x] Convert `AlbumsActivity`'s artist-album loading to lifecycle-owned IO work.
 - [x] Convert `TracksActivity`'s source-track loading to lifecycle-owned IO work.
 - [x] Convert `TracksActivity`'s file-to-playlist validation and database work to lifecycle-owned IO.
+- [x] Convert third-party URI track lookup to a lifecycle-owned suspend IO operation.
 - [x] Convert `SimpleControllerActivity`'s queue refresh query to lifecycle-owned IO work.
 - [x] Convert `QueueActivity`'s queue-to-playlist Room write to lifecycle-owned IO work.
 - [x] Convert `MainActivity`'s M3U import processing to lifecycle-owned IO work.

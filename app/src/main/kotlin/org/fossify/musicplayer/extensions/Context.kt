@@ -20,6 +20,8 @@ import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.target.Target
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.fossify.commons.extensions.*
 import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.helpers.isQPlus
@@ -266,22 +268,13 @@ fun Context.loadGlideResource(
     }
 }
 
-fun Context.getTrackFromUri(uri: Uri?, callback: (track: Track?) -> Unit) {
-    if (uri == null) {
-        callback(null)
-        return
-    }
+suspend fun Context.getTrackFromUri(uri: Uri?): Track? {
+    if (uri == null) return null
 
-    ensureBackgroundThread {
-        val path = getRealPathFromURI(uri)
-        if (path == null) {
-            callback(null)
-            return@ensureBackgroundThread
-        }
-
+    return withContext(Dispatchers.IO) {
+        val path = getRealPathFromURI(uri) ?: return@withContext null
         val allTracks = audioHelper.getAllTracks()
-        val track = allTracks.find { it.path == path } ?: RoomHelper(this).getTrackFromPath(path) ?: return@ensureBackgroundThread
-        callback(track)
+        allTracks.find { it.path == path } ?: RoomHelper(this@getTrackFromUri).getTrackFromPath(path)
     }
 }
 
