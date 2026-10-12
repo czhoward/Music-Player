@@ -41,7 +41,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Moved polymorphic selected-track resolution in `BaseMusicAdapter` to lifecycle-owned IO, then dispatched share/dialog/player UI actions on main.
 - Moved `TracksHeaderAdapter`'s album lookup to the Activity lifecycle IO scope while keeping artwork loading on its existing callback path.
 - Moved track-deletion selection and row-position snapshots in both track adapters back to main before the existing MediaStore deletion workflow.
-- Updated `AlbumsTracksAdapter` to snapshot selected models and its item list on main before its Room track lookup and delete callback.
+- Converted `AlbumsTracksAdapter`'s album-track lookup and deletion setup to host Activity lifecycle IO after snapshotting selection and items on main.
 - Moved album, artist, and genre deletion selection/position snapshots to main before their existing track/database deletion work.
 - Converted `SelectPlaylistDialog`'s playlist query to the host `BaseSimpleActivity` lifecycle scope and IO dispatcher.
 - Converted `NewPlaylistDialog` duplicate-title checks and Room create/rename operations to lifecycle-owned IO while keeping dialog feedback on main.
@@ -58,9 +58,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 
 Current uncommitted work on `main`:
 
-- `app/src/main/kotlin/org/fossify/musicplayer/adapters/AlbumsAdapter.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/adapters/ArtistsAdapter.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/adapters/GenresAdapter.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/adapters/AlbumsTracksAdapter.kt`
 - `COPILOT_HANDOFF.md`
 
 ## Environment and Validation Notes
@@ -120,7 +118,7 @@ Current uncommitted work on `main`:
 - [x] Move album/artist/genre deletion queries and category-row Room deletes to lifecycle-owned IO.
 - [x] Move TracksAdapter playlist removal and reorder Room writes to lifecycle-owned IO.
 - [x] Snapshot track-deletion selection and row positions on main before the MediaStore deletion workflow.
-- [x] Snapshot AlbumsTracksAdapter selection and items on main before background album-track lookup.
+- [x] Convert AlbumsTracksAdapter album-track lookup to lifecycle-owned IO after snapshotting selection and items on main.
 - [x] Move the TracksHeaderAdapter album lookup to lifecycle-owned IO.
 - [x] Move `SelectPlaylistDialog`'s Room query into the host Activity lifecycle scope.
 - [x] Move playlist create/rename database work into the dialog Activity lifecycle scope.

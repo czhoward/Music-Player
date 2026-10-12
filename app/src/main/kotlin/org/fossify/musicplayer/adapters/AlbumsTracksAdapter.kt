@@ -3,13 +3,16 @@ package org.fossify.musicplayer.adapters
 import android.view.Menu
 import android.view.View
 import android.view.ViewGroup
+import androidx.lifecycle.lifecycleScope
 import com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.fossify.commons.dialogs.ConfirmationDialog
 import org.fossify.commons.extensions.beGone
 import org.fossify.commons.extensions.beVisible
 import org.fossify.commons.extensions.getFormattedDuration
 import org.fossify.commons.extensions.setupViewBackground
-import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.views.MyRecyclerView
 import org.fossify.musicplayer.R
 import org.fossify.musicplayer.activities.SimpleActivity
@@ -103,8 +106,10 @@ class AlbumsTracksAdapter(
             val selectedAlbums = getSelectedAlbums()
             val itemsSnapshot = items.toList()
 
-            ensureBackgroundThread {
-                val tracksToDelete = selectedTracks + context.audioHelper.getAlbumTracks(selectedAlbums)
+            context.lifecycleScope.launch {
+                val tracksToDelete = withContext(Dispatchers.IO) {
+                    selectedTracks + context.audioHelper.getAlbumTracks(selectedAlbums)
+                }
                 val positions = ArrayList<Int>()
                 positions += tracksToDelete.mapNotNull { track ->
                     itemsSnapshot.indexOfFirstOrNull { it is Track && it.mediaStoreId == track.mediaStoreId }
@@ -114,17 +119,15 @@ class AlbumsTracksAdapter(
                 }
 
                 context.deleteTracks(tracksToDelete) {
-                    context.runOnUiThread {
-                        positions.sortDescending()
-                        removeSelectedItems(positions)
-                        positions.forEach {
-                            items.removeAt(it)
-                        }
+                    positions.sortDescending()
+                    removeSelectedItems(positions)
+                    positions.forEach {
+                        items.removeAt(it)
+                    }
 
-                        // finish activity if all tracks are deleted
-                        if (items.none { it is Track }) {
-                            context.finish()
-                        }
+                    // finish activity if all tracks are deleted
+                    if (items.none { it is Track }) {
+                        context.finish()
                     }
                 }
             }
