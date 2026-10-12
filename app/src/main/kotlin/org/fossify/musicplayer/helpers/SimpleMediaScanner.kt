@@ -8,8 +8,11 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.MediaStore
 import android.provider.MediaStore.Audio
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import org.fossify.commons.extensions.*
-import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.helpers.isQPlus
 import org.fossify.commons.helpers.isRPlus
 import org.fossify.musicplayer.R
@@ -27,6 +30,7 @@ import org.fossify.musicplayer.extensions.getFriendlyFolder
  */
 class SimpleMediaScanner(private val context: Application) {
 
+    private val scanScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val config = context.config
     private var scanning = false
     private var showProgress = false
@@ -59,7 +63,7 @@ class SimpleMediaScanner(private val context: Application) {
         }
 
         scanning = true
-        ensureBackgroundThread {
+        scanScope.launch {
             try {
                 scanMediaStore()
                 if (isQPlus()) {
