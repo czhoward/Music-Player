@@ -12,7 +12,6 @@ import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.dialogs.PropertiesDialog
 import org.fossify.commons.extensions.rescanPaths
 import org.fossify.commons.extensions.sharePathsIntent
-import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.musicplayer.BuildConfig
 import org.fossify.musicplayer.dialogs.SelectPlaylistDialog
 import org.fossify.musicplayer.helpers.FLAG_MANUAL_CACHE

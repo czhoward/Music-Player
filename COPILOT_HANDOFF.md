@@ -29,6 +29,9 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Converted the direct Room-backed loads in the Albums, Artists, Folders, Genres, and Playlists pager views to the hosting Activity's lifecycle scope with IO queries and main-thread rendering.
 - Converted `SimpleControllerActivity.refreshQueueAndTracks()` to fetch queue tracks in `Dispatchers.IO` and resume player updates from the Activity lifecycle scope.
 - Removed the redundant `ensureBackgroundThread` wrapper from player preparation because `AudioHelper.getQueuedTracksLazily()` already owns background dispatch.
+- Removed stale `ensureBackgroundThread` imports from `Activity.kt` and `SimpleControllerActivity.kt` after their prior coroutine conversions.
+- Replaced `TrackActivity`'s blocking Glide `FutureTarget.get()` path with an asynchronous `CustomTarget` request managed by the Activity's Glide request manager.
+- Reviewed the deprecated shuffle-order workaround; AndroidX Media issue 325 remains open, so the tested ExoPlayer-specific implementation stays until a public `Player` API exists.
 - Replaced `SimpleMediaController`'s single-thread executor and blocking controller-future reads with completion listeners; callbacks now wait for an available connected controller, and releasing before first acquisition is safe.
 - Added `addListenerWithResult` and a regression test proving callbacks run only after their future completes.
 - Converted the artist-album load in `AlbumsActivity` from `ensureBackgroundThread` plus `runOnUiThread` to `lifecycleScope` and `Dispatchers.IO`, so work is canceled with the Activity.
@@ -60,7 +63,9 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 
 Current uncommitted work on `main`:
 
-- `app/src/main/kotlin/org/fossify/musicplayer/dialogs/EditDialog.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/activities/SimpleControllerActivity.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/extensions/Activity.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/extensions/Context.kt`
 - `COPILOT_HANDOFF.md`
 
 ## Environment and Validation Notes
@@ -74,9 +79,9 @@ Current uncommitted work on `main`:
 ## Recommended Next Steps
 
 1. Add an instrumentation or controlled MediaStore scan test and cover Android system-level foreground-service behavior.
-2. Continue replacing remaining callback-heavy `ensureBackgroundThread` uses with structured concurrency where practical; adapter selection snapshots stay on main and subtype track queries run on IO. MediaStore deletion and external rescan callbacks remain callback-based.
+2. Review the remaining callback-oriented worker helpers in `Context.kt` artwork lookups and `AudioHelper.getQueuedTracksLazily()`; preserve their callback contracts unless converting their callers together.
 3. Review whether any remaining one-shot EventBus invalidations need a state-holder; recurring sleep-timer state has already moved to `StateFlow`.
-4. Review remaining deprecated Media3 workarounds; the current shuffle-order next-item behavior is regression-covered but still depends on the deprecated API.
+4. Retain the tested ExoPlayer shuffle-order workaround until AndroidX Media exposes shuffle-order control through `Player` (issue 325 remains open).
 5. Decide the new minimum supported Android version, then review storage permissions and manifest compatibility against that floor.
 6. Review the four stale lint-baseline entries and existing lint warnings without broadening into unrelated dependency updates.
 7. Evaluate stale libraries and UI helpers, including `autofittextview`, `EventBus`, and `jAudioTagger`.
@@ -131,7 +136,7 @@ Current uncommitted work on `main`:
 - [x] Convert Albums, Artists, Folders, Genres, and Playlists pager queries to their hosting Activity's lifecycle scope.
 - Replace scattered background-thread helpers with structured concurrency where practical.
 - Audit `EventBus` usage and decide whether each path should move to a state-holder or be kept behind a smaller boundary.
-- Review any deprecated Media3 workarounds, especially shuffle-order behavior in `SimpleMusicPlayer`.
+- [x] Review the deprecated shuffle-order workaround; retain it until AndroidX Media issue 325 is resolved with a public `Player` API.
 
 ### P2: Simplify App Behavior
 

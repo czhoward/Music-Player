@@ -17,9 +17,11 @@ import androidx.media3.common.Player
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.GlideException
+import com.bumptech.glide.request.target.CustomTarget
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.RequestOptions
 import com.bumptech.glide.request.target.Target
+import com.bumptech.glide.request.transition.Transition
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.fossify.commons.extensions.*
@@ -238,34 +240,33 @@ fun Context.loadGlideResource(
     onLoadFailed: (e: Exception?) -> Unit,
     onResourceReady: (resource: Drawable) -> Unit,
 ) {
-    ensureBackgroundThread {
-        try {
-            Glide.with(this)
-                .load(model)
-                .apply(options)
-                .listener(object : RequestListener<Drawable> {
-                    override fun onLoadFailed(e: GlideException?, model: Any?, target: Target<Drawable>, isFirstResource: Boolean): Boolean {
-                        onLoadFailed(e)
-                        return true
-                    }
+    val onLoadFailedCallback = onLoadFailed
+    val onResourceReadyCallback = onResourceReady
+    Glide.with(this)
+        .load(model)
+        .apply(options)
+        .listener(object : RequestListener<Drawable> {
+            override fun onLoadFailed(e: GlideException?, model: Any?, target: Target<Drawable>, isFirstResource: Boolean): Boolean {
+                onLoadFailedCallback(e)
+                return true
+            }
 
-                    override fun onResourceReady(
-                        resource: Drawable,
-                        model: Any,
-                        target: Target<Drawable>,
-                        dataSource: DataSource,
-                        isFirstResource: Boolean
-                    ): Boolean {
-                        onResourceReady(resource)
-                        return false
-                    }
-                })
-                .submit(size.width, size.height)
-                .get()
-        } catch (e: Exception) {
-            onLoadFailed(e)
-        }
-    }
+            override fun onResourceReady(
+                resource: Drawable,
+                model: Any?,
+                target: Target<Drawable>,
+                dataSource: DataSource,
+                isFirstResource: Boolean
+            ): Boolean {
+                onResourceReadyCallback(resource)
+                return true
+            }
+        })
+        .into(object : CustomTarget<Drawable>(size.width, size.height) {
+            override fun onResourceReady(resource: Drawable, transition: Transition<in Drawable>?) = Unit
+
+            override fun onLoadCleared(placeholder: Drawable?) = Unit
+        })
 }
 
 suspend fun Context.getTrackFromUri(uri: Uri?): Track? {
