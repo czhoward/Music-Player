@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
-import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.musicplayer.helpers.PlaybackSetting
 import org.fossify.musicplayer.helpers.RESTART_ON_PREVIOUS_THRESHOLD
 import org.fossify.musicplayer.models.Track
@@ -166,21 +165,19 @@ var prepareInProgress = false
 inline fun Player.maybePreparePlayer(context: Context, crossinline callback: (success: Boolean) -> Unit) {
     if (!prepareInProgress && currentMediaItem == null) {
         prepareInProgress = true
-        ensureBackgroundThread {
-            var prepared = false
-            context.audioHelper.getQueuedTracksLazily { tracks, startIndex, startPositionMs ->
-                if (!prepared) {
-                    prepareUsingTracks(tracks = tracks, startIndex = startIndex, startPositionMs = startPositionMs) {
-                        callback(it)
-                        prepared = it
-                    }
-                } else {
-                    if (tracks.size == 1) {
-                        return@getQueuedTracksLazily
-                    }
-
-                    addRemainingMediaItems(tracks.toMediaItemsFast(), startIndex)
+        var prepared = false
+        context.audioHelper.getQueuedTracksLazily { tracks, startIndex, startPositionMs ->
+            if (!prepared) {
+                prepareUsingTracks(tracks = tracks, startIndex = startIndex, startPositionMs = startPositionMs) {
+                    callback(it)
+                    prepared = it
                 }
+            } else {
+                if (tracks.size == 1) {
+                    return@getQueuedTracksLazily
+                }
+
+                addRemainingMediaItems(tracks.toMediaItemsFast(), startIndex)
             }
         }
     } else {

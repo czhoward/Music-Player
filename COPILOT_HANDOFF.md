@@ -28,6 +28,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Replaced `SimpleMediaScanner`'s background-thread helper with a scanner-owned IO coroutine scope, preserving its application lifetime and worker-thread callback contract.
 - Converted the direct Room-backed loads in the Albums, Artists, Folders, Genres, and Playlists pager views to the hosting Activity's lifecycle scope with IO queries and main-thread rendering.
 - Converted `SimpleControllerActivity.refreshQueueAndTracks()` to fetch queue tracks in `Dispatchers.IO` and resume player updates from the Activity lifecycle scope.
+- Removed the redundant `ensureBackgroundThread` wrapper from player preparation because `AudioHelper.getQueuedTracksLazily()` already owns background dispatch.
 - Replaced `SimpleMediaController`'s single-thread executor and blocking controller-future reads with completion listeners; callbacks now wait for an available connected controller, and releasing before first acquisition is safe.
 - Added `addListenerWithResult` and a regression test proving callbacks run only after their future completes.
 - Converted the artist-album load in `AlbumsActivity` from `ensureBackgroundThread` plus `runOnUiThread` to `lifecycleScope` and `Dispatchers.IO`, so work is canceled with the Activity.
@@ -59,8 +60,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 
 Current uncommitted work on `main`:
 
-- `app/src/main/kotlin/org/fossify/musicplayer/adapters/TracksAdapter.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/adapters/TracksHeaderAdapter.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/extensions/Player.kt`
 - `COPILOT_HANDOFF.md`
 
 ## Environment and Validation Notes
@@ -109,6 +109,7 @@ Current uncommitted work on `main`:
 - [x] Resolve playlist tracks on IO before entering the shared deletion flow.
 - [x] Move the application-owned media scanner from `ensureBackgroundThread` to an owned IO coroutine scope.
 - [x] Convert `SimpleControllerActivity`'s queue refresh query to lifecycle-owned IO work.
+- [x] Remove redundant player-preparation worker dispatch when delegated queue loading already runs in the background.
 - [x] Convert `QueueActivity`'s queue-to-playlist Room write to lifecycle-owned IO work.
 - [x] Convert `MainActivity`'s M3U import processing to lifecycle-owned IO work.
 - [x] Convert `TracksFragment`'s Room-backed track query to the owning Activity lifecycle scope.
