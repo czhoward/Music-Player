@@ -2,12 +2,15 @@ package org.fossify.musicplayer.adapters
 
 import android.view.View
 import android.view.ViewGroup
+import androidx.lifecycle.lifecycleScope
 import com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.dialogs.ConfirmationDialog
 import org.fossify.commons.extensions.highlightTextPart
 import org.fossify.commons.extensions.setupViewBackground
-import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.views.MyRecyclerView
 import org.fossify.musicplayer.R
 import org.fossify.musicplayer.databinding.ItemAlbumBinding
@@ -61,18 +64,19 @@ class AlbumsAdapter(activity: BaseSimpleActivity, items: ArrayList<Album>, recyc
                 items.indexOfFirstOrNull { it.id == album.id }
             })
 
-            ensureBackgroundThread {
-                val tracks = context.audioHelper.getAlbumTracks(selectedAlbums)
-                context.audioHelper.deleteAlbums(selectedAlbums)
+            context.lifecycleScope.launch {
+                val tracks = withContext(Dispatchers.IO) {
+                    context.audioHelper.getAlbumTracks(selectedAlbums).also {
+                        context.audioHelper.deleteAlbums(selectedAlbums)
+                    }
+                }
 
                 context.deleteTracks(tracks) {
-                    context.runOnUiThread {
-                        positions.sortDescending()
-                        removeSelectedItems(positions)
-                        positions.forEach {
-                            if (items.size > it) {
-                                items.removeAt(it)
-                            }
+                    positions.sortDescending()
+                    removeSelectedItems(positions)
+                    positions.forEach {
+                        if (items.size > it) {
+                            items.removeAt(it)
                         }
                     }
                 }

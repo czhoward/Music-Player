@@ -24,6 +24,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Converted third-party URI track resolution to a cancellable suspend lookup on IO, consumed by `TrackActivity`'s lifecycle scope.
 - Moved track-deletion Room cleanup and legacy file deletion to lifecycle-owned IO; kept recoverable MediaStore permission requests and UI/player callbacks on main.
 - Converted `PlaylistsAdapter`'s delete-files track lookup to the host Activity lifecycle scope before entering the shared deletion flow.
+- Converted album, artist, and genre deletion lookups and category-row Room deletes to host Activity lifecycle IO, keeping adapter mutations on main.
 - Replaced `SimpleMediaScanner`'s background-thread helper with a scanner-owned IO coroutine scope, preserving its application lifetime and worker-thread callback contract.
 - Converted the direct Room-backed loads in the Albums, Artists, Folders, Genres, and Playlists pager views to the hosting Activity's lifecycle scope with IO queries and main-thread rendering.
 - Converted `SimpleControllerActivity.refreshQueueAndTracks()` to fetch queue tracks in `Dispatchers.IO` and resume player updates from the Activity lifecycle scope.
@@ -57,8 +58,9 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 
 Current uncommitted work on `main`:
 
-- `app/src/main/kotlin/org/fossify/musicplayer/activities/SimpleControllerActivity.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/adapters/PlaylistsAdapter.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/adapters/AlbumsAdapter.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/adapters/ArtistsAdapter.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/adapters/GenresAdapter.kt`
 - `COPILOT_HANDOFF.md`
 
 ## Environment and Validation Notes
@@ -115,6 +117,7 @@ Current uncommitted work on `main`:
 - [x] Keep adapter-owned queue/properties selection and share-intent operations on main.
 - [x] Resolve polymorphic selected-track queries on IO before dispatching adapter player/share/properties actions.
 - [x] Keep album/artist/genre deletion selection and adapter-position snapshots on main.
+- [x] Move album/artist/genre deletion queries and category-row Room deletes to lifecycle-owned IO.
 - [x] Move TracksAdapter playlist removal and reorder Room writes to lifecycle-owned IO.
 - [x] Snapshot track-deletion selection and row positions on main before the MediaStore deletion workflow.
 - [x] Snapshot AlbumsTracksAdapter selection and items on main before background album-track lookup.

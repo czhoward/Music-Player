@@ -3,12 +3,15 @@ package org.fossify.musicplayer.adapters
 import android.annotation.SuppressLint
 import android.view.View
 import android.view.ViewGroup
+import androidx.lifecycle.lifecycleScope
 import com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.dialogs.ConfirmationDialog
 import org.fossify.commons.extensions.highlightTextPart
 import org.fossify.commons.extensions.setupViewBackground
-import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.views.MyRecyclerView
 import org.fossify.musicplayer.R
 import org.fossify.musicplayer.databinding.ItemArtistBinding
@@ -63,18 +66,18 @@ class ArtistsAdapter(activity: BaseSimpleActivity, items: ArrayList<Artist>, rec
                 items.indexOfFirstOrNull { it.id == artist.id }
             })
 
-            ensureBackgroundThread {
-                val tracks = context.audioHelper.getArtistTracks(selectedArtists)
-
-                context.audioHelper.deleteArtists(selectedArtists)
+            context.lifecycleScope.launch {
+                val tracks = withContext(Dispatchers.IO) {
+                    context.audioHelper.getArtistTracks(selectedArtists).also {
+                        context.audioHelper.deleteArtists(selectedArtists)
+                    }
+                }
                 context.deleteTracks(tracks) {
-                    context.runOnUiThread {
-                        positions.sortDescending()
-                        removeSelectedItems(positions)
-                        positions.forEach {
-                            if (items.size > it) {
-                                items.removeAt(it)
-                            }
+                    positions.sortDescending()
+                    removeSelectedItems(positions)
+                    positions.forEach {
+                        if (items.size > it) {
+                            items.removeAt(it)
                         }
                     }
                 }
