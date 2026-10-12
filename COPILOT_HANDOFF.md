@@ -35,6 +35,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Removed stale `ensureBackgroundThread` imports from `Activity.kt` and `SimpleControllerActivity.kt` after their prior coroutine conversions.
 - Replaced `TrackActivity`'s blocking Glide `FutureTarget.get()` path with an asynchronous `CustomTarget` request managed by the Activity's Glide request manager.
 - Added lifecycle-owned IO artwork lookups for Activity, adapter, and `CurrentTrackBar` callers; the view unwraps themed contexts and retains a generic fallback when no app Activity is available.
+- Replaced the sole AutofitTextView use with native `TextView` autosizing and removed its dependency and license flag.
 - Audited remaining `ensureBackgroundThread` calls; retained only the generic Context artwork fallback and owner-agnostic two-stage queue loader, with the latter's callback contract covered by a regression test.
 - Reviewed the deprecated shuffle-order workaround; AndroidX Media issue 325 remains open, so the tested ExoPlayer-specific implementation stays until a public `Player` API exists.
 - Replaced `SimpleMediaController`'s single-thread executor and blocking controller-future reads with completion listeners; callbacks now wait for an available connected controller, and releasing before first acquisition is safe.
@@ -68,7 +69,9 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 
 Current uncommitted work on `main`:
 
-- `app/lint-baseline.xml`
+- `app/build.gradle.kts`
+- `app/src/main/kotlin/org/fossify/musicplayer/activities/MainActivity.kt`
+- `gradle/libs.versions.toml`
 - `COPILOT_HANDOFF.md`
 
 ## Environment and Validation Notes
@@ -88,7 +91,7 @@ Current uncommitted work on `main`:
 4. Retain the tested ExoPlayer shuffle-order workaround until AndroidX Media exposes shuffle-order control through `Player` (issue 325 remains open).
 5. Decide the new minimum supported Android version, then review storage permissions and manifest compatibility against that floor.
 6. Review the remaining lint warnings without broadening into unrelated dependency updates.
-7. Evaluate stale libraries and UI helpers, including `autofittextview`, `EventBus`, and `jAudioTagger`.
+7. Evaluate remaining stale libraries, including `EventBus` and `jAudioTagger`.
 
 ## Planned Modernization TODO
 
@@ -155,7 +158,8 @@ Current uncommitted work on `main`:
 
 ### P3: Dependency and Architecture Cleanup
 
-- Evaluate stale libraries such as `autofittextview`, `EventBus`, and `jAudioTagger`.
+- [x] Replace AutofitTextView with platform autosizing and remove its dependency and license entry.
+- Evaluate remaining stale libraries such as `EventBus` and `jAudioTagger`.
 - Decide whether the app should stay single-module or move toward a smaller internal module split.
 - Improve test coverage for database, playback, and library scanning logic.
 

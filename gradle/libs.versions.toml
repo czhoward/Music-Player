@@ -1,6 +1,5 @@
 [versions]
 #jetbrains
-autofittextview = "0.2.1"
 desugar_jdk_libs = "2.1.5"
 jaudiotagger = "3.0.1"
 kotlin = "2.3.10"
@@ -58,7 +57,6 @@ eventbus = { module = "org.greenrobot:eventbus", version.ref = "eventbus" }
 desugar_jdk_libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar_jdk_libs" }
 jaudiotagger = { module = "net.jthink:jaudiotagger", version.ref = "jaudiotagger" }
 lottie = { module = "com.airbnb.android:lottie", version.ref = "lottie" }
-autofittextview = { module = "me.grantland:autofittextview", version.ref = "autofittextview" }
 m3u-parser = { module = "com.github.bjoernpetersen:m3u-parser", version.ref = "m3uParser" }
 junit = { module = "junit:junit", version.ref = "junit" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }

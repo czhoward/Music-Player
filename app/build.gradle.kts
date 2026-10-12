@@ -160,7 +160,6 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.lottie)
     implementation(libs.m3u.parser)
-    implementation(libs.autofittextview)
     implementation(libs.jaudiotagger)
     coreLibraryDesugaring(libs.desugar.jdk.libs)
 

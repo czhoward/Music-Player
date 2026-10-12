@@ -7,6 +7,7 @@ import android.graphics.drawable.Drawable
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Bundle
+import android.util.TypedValue
 import android.widget.Toast
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -16,7 +17,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import me.grantland.widget.AutofitHelper
 import org.fossify.musicplayer.BuildConfig
 import org.fossify.commons.databinding.BottomTablayoutItemBinding
 import org.fossify.commons.dialogs.FilePickerDialog
@@ -44,6 +44,11 @@ import org.greenrobot.eventbus.ThreadMode
 import java.io.FileOutputStream
 
 class MainActivity : SimpleMusicActivity() {
+    companion object {
+        private const val MIN_TAB_LABEL_TEXT_SIZE_SP = 8
+        private const val TAB_LABEL_TEXT_SIZE_STEP_SP = 1
+    }
+
     private val PICK_IMPORT_SOURCE_INTENT = 1
 
     private var bus: EventBus? = null
@@ -260,7 +265,13 @@ class MainActivity : SimpleMusicActivity() {
                 val tabItemBinding = BottomTablayoutItemBinding.bind(customView!!)
                 tabItemBinding.tabItemIcon.setImageDrawable(getTabIcon(value))
                 tabItemBinding.tabItemLabel.text = getTabLabel(value)
-                AutofitHelper.create(tabItemBinding.tabItemLabel)
+                val maxTextSize = tabItemBinding.tabItemLabel.textSize / resources.displayMetrics.scaledDensity
+                tabItemBinding.tabItemLabel.setAutoSizeTextTypeUniformWithConfiguration(
+                    MIN_TAB_LABEL_TEXT_SIZE_SP,
+                    maxTextSize.toInt(),
+                    TAB_LABEL_TEXT_SIZE_STEP_SP,
+                    TypedValue.COMPLEX_UNIT_SP
+                )
                 binding.mainTabsHolder.addTab(this)
             }
         }
@@ -556,7 +567,7 @@ class MainActivity : SimpleMusicActivity() {
     }
 
     private fun launchAbout() {
-        val licenses = LICENSE_EVENT_BUS or LICENSE_GLIDE or LICENSE_M3U_PARSER or LICENSE_AUTOFITTEXTVIEW
+        val licenses = LICENSE_EVENT_BUS or LICENSE_GLIDE or LICENSE_M3U_PARSER
 
         val faqItems = arrayListOf(
             FAQItem(R.string.faq_1_title, R.string.faq_1_text),
