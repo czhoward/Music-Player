@@ -14,7 +14,6 @@ import org.fossify.commons.extensions.beGone
 import org.fossify.commons.extensions.beVisible
 import org.fossify.commons.extensions.getFormattedDuration
 import org.fossify.commons.extensions.setupViewBackground
-import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.views.MyRecyclerView
 import org.fossify.musicplayer.R
 import org.fossify.musicplayer.activities.SimpleActivity
@@ -105,20 +104,16 @@ class TracksHeaderAdapter(activity: SimpleActivity, items: ArrayList<ListItem>, 
                 }
             }
 
-            ensureBackgroundThread {
-                context.deleteTracks(selectedTracks) {
-                    context.runOnUiThread {
-                        positions.sortDescending()
-                        removeSelectedItems(positions)
-                        positions.forEach {
-                            items.removeAt(it)
-                        }
+            context.deleteTracks(selectedTracks) {
+                positions.sortDescending()
+                removeSelectedItems(positions)
+                positions.forEach {
+                    items.removeAt(it)
+                }
 
-                        // finish activity if all tracks are deleted
-                        if (items.none { it is Track }) {
-                            context.finish()
-                        }
-                    }
+                // finish activity if all tracks are deleted
+                if (items.none { it is Track }) {
+                    context.finish()
                 }
             }
         }

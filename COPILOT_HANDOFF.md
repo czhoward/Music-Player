@@ -41,6 +41,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Moved polymorphic selected-track resolution in `BaseMusicAdapter` to lifecycle-owned IO, then dispatched share/dialog/player UI actions on main.
 - Moved `TracksHeaderAdapter`'s album lookup to the Activity lifecycle IO scope while keeping artwork loading on its existing callback path.
 - Moved track-deletion selection and row-position snapshots in both track adapters back to main before the existing MediaStore deletion workflow.
+- Removed redundant background-thread wrappers from `TracksAdapter` and `TracksHeaderAdapter` deletion callbacks; the shared Activity flow owns IO and main-thread permission handling.
 - Converted `AlbumsTracksAdapter`'s album-track lookup and deletion setup to host Activity lifecycle IO after snapshotting selection and items on main.
 - Moved album, artist, and genre deletion selection/position snapshots to main before their existing track/database deletion work.
 - Converted `SelectPlaylistDialog`'s playlist query to the host `BaseSimpleActivity` lifecycle scope and IO dispatcher.
@@ -58,7 +59,8 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 
 Current uncommitted work on `main`:
 
-- `app/src/main/kotlin/org/fossify/musicplayer/adapters/AlbumsTracksAdapter.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/adapters/TracksAdapter.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/adapters/TracksHeaderAdapter.kt`
 - `COPILOT_HANDOFF.md`
 
 ## Environment and Validation Notes
@@ -118,6 +120,7 @@ Current uncommitted work on `main`:
 - [x] Move album/artist/genre deletion queries and category-row Room deletes to lifecycle-owned IO.
 - [x] Move TracksAdapter playlist removal and reorder Room writes to lifecycle-owned IO.
 - [x] Snapshot track-deletion selection and row positions on main before the MediaStore deletion workflow.
+- [x] Remove redundant background-thread wrappers from track-adapter deletion callbacks.
 - [x] Convert AlbumsTracksAdapter album-track lookup to lifecycle-owned IO after snapshotting selection and items on main.
 - [x] Move the TracksHeaderAdapter album lookup to lifecycle-owned IO.
 - [x] Move `SelectPlaylistDialog`'s Room query into the host Activity lifecycle scope.

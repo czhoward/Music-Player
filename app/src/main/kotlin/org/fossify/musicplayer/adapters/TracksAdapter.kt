@@ -15,7 +15,6 @@ import kotlinx.coroutines.withContext
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.dialogs.ConfirmationDialog
 import org.fossify.commons.extensions.*
-import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.interfaces.ItemMoveCallback
 import org.fossify.commons.interfaces.ItemTouchHelperContract
 import org.fossify.commons.interfaces.StartReorderDragListener
@@ -158,24 +157,20 @@ class TracksAdapter(
                 }
             }
 
-            ensureBackgroundThread {
-                context.deleteTracks(selectedTracks) {
-                    context.runOnUiThread {
-                        positions.sortDescending()
-                        removeSelectedItems(positions)
-                        positions.forEach {
-                            if (items.size > it) {
-                                items.removeAt(it)
-                            }
-                        }
-
-                        finishActMode()
-
-                        // finish activity if all tracks are deleted
-                        if (items.isEmpty() && !isPlaylistContent()) {
-                            context.finish()
-                        }
+            context.deleteTracks(selectedTracks) {
+                positions.sortDescending()
+                removeSelectedItems(positions)
+                positions.forEach {
+                    if (items.size > it) {
+                        items.removeAt(it)
                     }
+                }
+
+                finishActMode()
+
+                // finish activity if all tracks are deleted
+                if (items.isEmpty() && !isPlaylistContent()) {
+                    context.finish()
                 }
             }
         }
