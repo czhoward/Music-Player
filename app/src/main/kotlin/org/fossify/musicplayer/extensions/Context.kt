@@ -177,45 +177,6 @@ private fun Context.resolveTrackCoverArt(track: Track?): Any? {
     return track.coverArt.ifEmpty { loadTrackCoverArt(track) }
 }
 
-fun Context.getArtistCoverArt(artist: Artist, callback: (coverArt: Any?) -> Unit) {
-    ensureBackgroundThread {
-        if (artist.albumArt.isEmpty()) {
-            val track = audioHelper.getArtistTracks(artist.id).firstOrNull()
-            getTrackCoverArt(track, callback)
-        } else {
-            Handler(Looper.getMainLooper()).post {
-                callback(artist.albumArt)
-            }
-        }
-    }
-}
-
-fun Context.getAlbumCoverArt(album: Album, callback: (coverArt: Any?) -> Unit) {
-    ensureBackgroundThread {
-        if (album.coverArt.isEmpty()) {
-            val track = audioHelper.getAlbumTracks(album.id).firstOrNull()
-            getTrackCoverArt(track, callback)
-        } else {
-            Handler(Looper.getMainLooper()).post {
-                callback(album.coverArt)
-            }
-        }
-    }
-}
-
-fun Context.getGenreCoverArt(genre: Genre, callback: (coverArt: Any?) -> Unit) {
-    ensureBackgroundThread {
-        if (genre.albumArt.isEmpty()) {
-            val track = audioHelper.getGenreTracks(genre.id).firstOrNull()
-            getTrackCoverArt(track, callback)
-        } else {
-            Handler(Looper.getMainLooper()).post {
-                callback(genre.albumArt)
-            }
-        }
-    }
-}
-
 fun Context.getTrackCoverArt(track: Track?, callback: (coverArt: Any?) -> Unit) {
     ensureBackgroundThread {
         if (track == null) {

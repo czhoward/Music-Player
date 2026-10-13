@@ -35,6 +35,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Removed stale `ensureBackgroundThread` imports from `Activity.kt` and `SimpleControllerActivity.kt` after their prior coroutine conversions.
 - Replaced `TrackActivity`'s blocking Glide `FutureTarget.get()` path with an asynchronous `CustomTarget` request managed by the Activity's Glide request manager.
 - Added lifecycle-owned IO artwork lookups for Activity, adapter, and `CurrentTrackBar` callers; the view unwraps themed contexts and retains a generic fallback when no app Activity is available.
+- Removed unused generic `Context` category-art callbacks; Activity and adapter callers use lifecycle-owned overloads.
 - Replaced the sole AutofitTextView use with native `TextView` autosizing and removed its dependency and license flag.
 - Audited remaining `ensureBackgroundThread` calls; retained only the generic Context artwork fallback and owner-agnostic two-stage queue loader, with the latter's callback contract covered by a regression test.
 - Reviewed the deprecated shuffle-order workaround; AndroidX Media issue 325 remains open, so the tested ExoPlayer-specific implementation stays until a public `Player` API exists.
@@ -69,9 +70,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 
 Current uncommitted work on `main`:
 
-- `app/build.gradle.kts`
-- `app/src/main/kotlin/org/fossify/musicplayer/activities/MainActivity.kt`
-- `gradle/libs.versions.toml`
+- `app/src/main/kotlin/org/fossify/musicplayer/extensions/Context.kt`
 - `COPILOT_HANDOFF.md`
 
 ## Environment and Validation Notes
@@ -82,10 +81,11 @@ Current uncommitted work on `main`:
 - The host now has 3.8 GiB RAM (about 2.8 GiB available at last check). Earlier combined builds OOM-killed daemons when the host had 1.9 GiB. Serial builds with a 1 GiB Gradle heap and Kotlin compilation in-process have passed; the repository default heap is 8 GiB.
 - Lint passes with the refreshed baseline, which suppresses 6 errors and 198 warnings; core reports 12 warnings and FOSS/GPlay report 14 each. No stale baseline entries remain.
 - The tests cover list movement, player-level next-item insertion/reordering including shuffle order, future and folder-callback completion, sleep-timer state, provider root construction and empty/seeded-Room reloads, service `onCreate()` initialization, fallback notification delivery, and a controlled populated MediaStore scan. A device-backed scan and Android OS enforcement of foreground-service restrictions remain untested. The folder bridge ignores callbacks after cancellation, but the external rescan itself is not cancellable.
+- The installed `testDevice` AVD could not boot: its configured userdata requires 7.37 GB while only 2.66 GB is free. An explicit temporary data path and partition-size override did not bypass the configured requirement.
 
 ## Recommended Next Steps
 
-1. Cover Android system-level foreground-service behavior; controlled MediaStore scan coverage is now in Robolectric.
+1. Cover Android system-level foreground-service behavior on a device or emulator with enough disk space; controlled MediaStore scan coverage is now in Robolectric.
 2. Retain the generic Context artwork fallback for callers without an Activity owner and the tested `AudioHelper.getQueuedTracksLazily()` callback contract; revisit only if their ownership model changes.
 3. Review whether any remaining one-shot EventBus invalidations need a state-holder; recurring sleep-timer state has already moved to `StateFlow`.
 4. Retain the tested ExoPlayer shuffle-order workaround until AndroidX Media exposes shuffle-order control through `Player` (issue 325 remains open).
