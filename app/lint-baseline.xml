@@ -3,7 +3,7 @@
 
     <issue
         id="ScopedStorage"
-        message="WRITE_EXTERNAL_STORAGE no longer provides write access when targeting Android 11+, even when using `requestLegacyExternalStorage`"
+        message="WRITE_EXTERNAL_STORAGE no longer provides write access when targeting Android 10+"
         errorLine1="        android:name=&quot;android.permission.WRITE_EXTERNAL_STORAGE&quot;"
         errorLine2="                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location

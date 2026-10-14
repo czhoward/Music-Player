@@ -22,6 +22,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Added a controlled API 28 Robolectric MediaStore scan test covering track, artist, album, genre, and all-tracks playlist persistence.
 - Added regression coverage for `AudioHelper.getQueuedTracksLazily()` emitting the current track before the full ordered queue, with saved position and worker-thread callbacks.
 - Refreshed four stale lint-baseline records for the version catalog's moved path and updated lint messages; no dependency or SDK versions were changed.
+- Removed the inert `requestLegacyExternalStorage` flag for target SDK 36, reviewed manifest permissions and exported components, and refreshed the affected ScopedStorage lint-baseline message. The legacy storage permission remains capped at API 32 pending a support-floor decision.
 - Converted source-track loading in `TracksActivity` to lifecycle-owned IO coroutine work, keeping adapter updates and placeholder state on the main dispatcher.
 - Converted `TracksActivity`'s file-to-playlist validation, MediaStore/Room lookup, and playlist insert to lifecycle-owned IO; retained the existing path-rescan callback.
 - Converted third-party URI track resolution to a cancellable suspend lookup on IO, consumed by `TrackActivity`'s lifecycle scope.
@@ -70,7 +71,8 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 
 Current uncommitted work on `main`:
 
-- `app/src/main/kotlin/org/fossify/musicplayer/extensions/Context.kt`
+- `app/lint-baseline.xml`
+- `app/src/main/AndroidManifest.xml`
 - `COPILOT_HANDOFF.md`
 
 ## Environment and Validation Notes
@@ -152,7 +154,7 @@ Current uncommitted work on `main`:
 ### P2: Simplify App Behavior
 
 - Remove or isolate storage and permission compatibility that is no longer needed after the support-floor decision.
-- Review the manifest for obsolete permissions, exported declarations, and legacy compatibility flags.
+- [x] Review the manifest for obsolete permissions, exported declarations, and legacy compatibility flags.
 - Reduce UI duplication in adapters, fragments, and activity code.
 - Tighten the startup path so the app controller lifecycle is easier to reason about.
 
