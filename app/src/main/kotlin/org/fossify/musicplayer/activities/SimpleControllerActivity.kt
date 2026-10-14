@@ -12,7 +12,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.fossify.commons.extensions.toast
-import org.fossify.commons.helpers.isRPlus
 import org.fossify.musicplayer.extensions.*
 import org.fossify.musicplayer.helpers.EXTRA_NEXT_MEDIA_ID
 import org.fossify.musicplayer.helpers.SimpleMediaController
@@ -22,7 +21,6 @@ import org.fossify.musicplayer.models.toMediaItems
 import org.fossify.musicplayer.playback.CustomCommands
 import org.fossify.musicplayer.playback.PlaybackService.Companion.updatePlaybackInfo
 import org.greenrobot.eventbus.EventBus
-import java.io.File
 
 /**
  * Base class for activities that want to control the [Player].
@@ -131,35 +129,17 @@ abstract class SimpleControllerActivity : SimpleActivity(), Player.Listener {
             maybeRescanTrackPaths(tracks) { tracksToDelete ->
                 lifecycleScope.launch {
                     if (tracksToDelete.isNotEmpty()) {
-                        if (isRPlus()) {
-                            val uris = tracksToDelete.map { ContentUris.withAppendedId(contentUri, it.mediaStoreId) }
-                            deleteSDK30Uris(uris) { success ->
-                                lifecycleScope.launch {
-                                    if (success) {
-                                        removeQueueItems(tracksToDelete)
-                                        EventBus.getDefault().post(Events.RefreshFragments())
-                                        callback()
-                                    } else {
-                                        toast(org.fossify.commons.R.string.unknown_error_occurred)
-                                    }
+                        val uris = tracksToDelete.map { ContentUris.withAppendedId(contentUri, it.mediaStoreId) }
+                        deleteSDK30Uris(uris) { success ->
+                            lifecycleScope.launch {
+                                if (success) {
+                                    removeQueueItems(tracksToDelete)
+                                    EventBus.getDefault().post(Events.RefreshFragments())
+                                    callback()
+                                } else {
+                                    toast(org.fossify.commons.R.string.unknown_error_occurred)
                                 }
                             }
-                        } else {
-                            withContext(Dispatchers.IO) {
-                                tracksToDelete.forEach { track ->
-                                    try {
-                                        val where = "${MediaStore.Audio.Media._ID} = ?"
-                                        val args = arrayOf(track.mediaStoreId.toString())
-                                        contentResolver.delete(contentUri, where, args)
-                                        File(track.path).delete()
-                                    } catch (ignored: Exception) {
-                                    }
-                                }
-                            }
-
-                            removeQueueItems(tracksToDelete)
-                            EventBus.getDefault().post(Events.RefreshFragments())
-                            callback()
                         }
                     }
                 }

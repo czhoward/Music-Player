@@ -17,7 +17,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 @RunWith(RobolectricTestRunner::class)
-@Config(application = MediaItemProviderTestApplication::class, sdk = [35])
+@Config(application = MediaItemProviderTestApplication::class, sdk = [36])
 class MediaItemProviderTest {
     @Test
     fun rootIsAvailableBeforeLibraryReload() {

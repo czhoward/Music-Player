@@ -402,33 +402,17 @@ class MainActivity : SimpleMusicActivity() {
     }
 
     private fun tryImportPlaylist() {
-        if (isQPlus()) {
-            hideKeyboard()
-            Intent(Intent.ACTION_GET_CONTENT).apply {
-                addCategory(Intent.CATEGORY_OPENABLE)
-                type = MIME_TYPE_M3U
+        hideKeyboard()
+        Intent(Intent.ACTION_GET_CONTENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = MIME_TYPE_M3U
 
-                try {
-                    startActivityForResult(this, PICK_IMPORT_SOURCE_INTENT)
-                } catch (e: ActivityNotFoundException) {
-                    toast(org.fossify.commons.R.string.system_service_disabled, Toast.LENGTH_LONG)
-                } catch (e: Exception) {
-                    showErrorToast(e)
-                }
-            }
-        } else {
-            handlePermission(PERMISSION_READ_STORAGE) { granted ->
-                if (granted) {
-                    showFilePickerDialog()
-                }
-            }
-        }
-    }
-
-    private fun showFilePickerDialog() {
-        FilePickerDialog(this, enforceStorageRestrictions = false) { path ->
-            SelectPlaylistDialog(this) { id ->
-                importPlaylist(path, id)
+            try {
+                startActivityForResult(this, PICK_IMPORT_SOURCE_INTENT)
+            } catch (e: ActivityNotFoundException) {
+                toast(org.fossify.commons.R.string.system_service_disabled, Toast.LENGTH_LONG)
+            } catch (e: Exception) {
+                showErrorToast(e)
             }
         }
     }

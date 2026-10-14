@@ -13,7 +13,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(application = MediaItemProviderTestApplication::class, sdk = [35])
+@Config(application = MediaItemProviderTestApplication::class, sdk = [36])
 class PlaybackServiceTest {
     @Test
     fun createInitializesPlayerSessionAndLibraryRoot() {

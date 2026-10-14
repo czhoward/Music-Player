@@ -13,16 +13,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.fossify.commons.extensions.*
-import org.fossify.commons.helpers.isQPlus
-import org.fossify.commons.helpers.isRPlus
 import org.fossify.musicplayer.R
 import org.fossify.musicplayer.extensions.audioHelper
 import org.fossify.musicplayer.extensions.config
 import org.fossify.musicplayer.models.*
 import java.io.File
 import java.io.FileInputStream
-import androidx.core.net.toUri
-import org.fossify.musicplayer.extensions.getFriendlyFolder
 
 /**
  * This singleton class manages the process of querying [MediaStore] for new audio files, manually scanning storage for missing audio files, and removing outdated
@@ -66,10 +62,8 @@ class SimpleMediaScanner(private val context: Application) {
         scanScope.launch {
             try {
                 scanMediaStore()
-                if (isQPlus()) {
-                    onScanComplete?.invoke(false)
-                    scanFilesManually()
-                }
+                onScanComplete?.invoke(false)
+                scanFilesManually()
 
                 cleanupDatabase()
                 onScanComplete?.invoke(true)
@@ -99,10 +93,9 @@ class SimpleMediaScanner(private val context: Application) {
     private fun scanMediaStore() {
         newTracks += getTracksSync()
         newArtists += getArtistsSync()
-        newAlbums += getAlbumsSync(newArtists)
+        newAlbums += getAlbumsSync()
         newGenres += getGenresSync()
         mediaStorePaths += newTracks.map { it.path }
-        assignGenreToTracks()
 
         // ignore tracks from excluded folders and tracks with no albums, artists
         val albumIds = newAlbums.map { it.id }
@@ -220,18 +213,12 @@ class SimpleMediaScanner(private val context: Application) {
             Audio.Media.ARTIST_ID,
             Audio.Media.TRACK,
             Audio.Media.YEAR,
-            Audio.Media.DATE_ADDED
+            Audio.Media.DATE_ADDED,
+            Audio.Media.BUCKET_DISPLAY_NAME,
+            Audio.Media.GENRE,
+            Audio.Media.GENRE_ID,
+            Audio.Media.DISC_NUMBER
         )
-
-        if (isQPlus()) {
-            projection.add(Audio.Media.BUCKET_DISPLAY_NAME)
-        }
-
-        if (isRPlus()) {
-            projection.add(Audio.Media.GENRE)
-            projection.add(Audio.Media.GENRE_ID)
-            projection.add(Audio.Media.DISC_NUMBER)
-        }
 
         context.queryCursor(uri, projection.toTypedArray(), showErrors = true) { cursor ->
             val id = cursor.getLongValue(Audio.Media._ID)
@@ -241,11 +228,7 @@ class SimpleMediaScanner(private val context: Application) {
                 ?: cursor.getIntValueOrNull(Audio.Media.TRACK)
             val path = cursor.getStringValue(Audio.Media.DATA).orEmpty()
             val artist = cursor.getStringValue(Audio.Media.ARTIST) ?: MediaStore.UNKNOWN_STRING
-            val folderName = if (isQPlus()) {
-                cursor.getStringValue(Audio.Media.BUCKET_DISPLAY_NAME) ?: MediaStore.UNKNOWN_STRING
-            } else {
-                context.getFriendlyFolder(path).ifEmpty { MediaStore.UNKNOWN_STRING }
-            }
+            val folderName = cursor.getStringValue(Audio.Media.BUCKET_DISPLAY_NAME) ?: MediaStore.UNKNOWN_STRING
 
             val album = cursor.getStringValue(Audio.Media.ALBUM) ?: folderName
             val albumId = cursor.getLongValue(Audio.Media.ALBUM_ID)
@@ -255,18 +238,9 @@ class SimpleMediaScanner(private val context: Application) {
             val coverUri = ContentUris.withAppendedId(artworkUri, albumId)
             val coverArt = coverUri.toString()
 
-            val genre: String
-            val genreId: Long
-            var discNumber: Int?
-            if (isRPlus()) {
-                genre = cursor.getStringValue(Audio.Media.GENRE).orEmpty()
-                genreId = cursor.getLongValue(Audio.Media.GENRE_ID)
-                discNumber = cursor.getStringValue(Audio.Media.DISC_NUMBER)?.firstNumber()
-            } else {
-                genre = ""
-                genreId = 0
-                discNumber = null
-            }
+            val genre = cursor.getStringValue(Audio.Media.GENRE).orEmpty()
+            val genreId = cursor.getLongValue(Audio.Media.GENRE_ID)
+            var discNumber = cursor.getStringValue(Audio.Media.DISC_NUMBER)?.firstNumber()
 
             if (trackId != null && trackId >= 1000) {
                 // derive disc number from track number when possible
@@ -314,7 +288,7 @@ class SimpleMediaScanner(private val context: Application) {
         return artists
     }
 
-    private fun getAlbumsSync(artists: ArrayList<Artist>): ArrayList<Album> {
+    private fun getAlbumsSync(): ArrayList<Album> {
         val albums = arrayListOf<Album>()
         val uri = Audio.Albums.EXTERNAL_CONTENT_URI
         val projection = arrayListOf(
@@ -322,12 +296,9 @@ class SimpleMediaScanner(private val context: Application) {
             Audio.Albums.ARTIST,
             Audio.Albums.FIRST_YEAR,
             Audio.Albums.ALBUM,
-            Audio.Albums.NUMBER_OF_SONGS
+            Audio.Albums.NUMBER_OF_SONGS,
+            Audio.Albums.ARTIST_ID
         )
-
-        if (isQPlus()) {
-            projection.add(Audio.Albums.ARTIST_ID)
-        }
 
         context.queryCursor(uri, projection.toTypedArray(), null, null, showErrors = true) { cursor ->
             val id = cursor.getLongValue(Audio.Albums._ID)
@@ -336,11 +307,7 @@ class SimpleMediaScanner(private val context: Application) {
             val coverArt = ContentUris.withAppendedId(artworkUri, id).toString()
             val year = cursor.getIntValue(Audio.Albums.FIRST_YEAR)
             val trackCnt = cursor.getIntValue(Audio.Albums.NUMBER_OF_SONGS)
-            val artistId = if (isQPlus()) {
-                cursor.getLongValue(Audio.Albums.ARTIST_ID)
-            } else {
-                artists.first { it.title == artistName }.id
-            }
+            val artistId = cursor.getLongValue(Audio.Albums.ARTIST_ID)
 
             if (trackCnt > 0) {
                 val album = Album(
@@ -368,45 +335,6 @@ class SimpleMediaScanner(private val context: Application) {
         }
 
         return genres
-    }
-
-    /**
-     * To map tracks to genres, we utilize [MediaStore.Audio.Genres.Members] because [MediaStore.Audio.Media.GENRE_ID] is not available on Android 11 and
-     * below. It is essential to call this method after [getTracksSync].
-     */
-    private fun assignGenreToTracks() {
-        if (isRPlus()) {
-            return
-        }
-
-        val genreToTracks = hashMapOf<Long, MutableList<Long>>()
-        val uri = GENRE_CONTENT_URI.toUri()
-        val projection = arrayListOf(
-            Audio.Genres.Members.GENRE_ID,
-            Audio.Genres.Members.AUDIO_ID
-        )
-
-        context.queryCursor(uri, projection.toTypedArray(), showErrors = true) {
-            val trackId = it.getLongValue(Audio.Genres.Members.AUDIO_ID)
-            val genreId = it.getLongValue(Audio.Genres.Members.GENRE_ID)
-
-            var tracks = genreToTracks[genreId]
-            if (tracks == null) {
-                tracks = mutableListOf(trackId)
-            } else {
-                tracks.add(trackId)
-            }
-
-            genreToTracks[genreId] = tracks
-        }
-
-        for ((genreId, trackIds) in genreToTracks) {
-            for (track in newTracks) {
-                if (track.mediaStoreId in trackIds) {
-                    track.genreId = genreId
-                }
-            }
-        }
     }
 
     private fun findTracksManually(pathsToIgnore: List<String>): ArrayList<Track> {
@@ -666,8 +594,6 @@ class SimpleMediaScanner(private val context: Application) {
     companion object {
         private const val SCANNER_NOTIFICATION_ID = 43
         private const val SCANNER_NOTIFICATION_DELAY = 1500L
-        private const val GENRE_CONTENT_URI = "content://media/external/audio/genres/all/members"
-
         private var instance: SimpleMediaScanner? = null
 
         fun getInstance(app: Application): SimpleMediaScanner {

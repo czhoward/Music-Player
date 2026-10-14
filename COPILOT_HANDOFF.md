@@ -19,10 +19,13 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Audited EventBus use: playlist, track, and fragment refreshes remain one-shot invalidations; recurring timer state is now modeled explicitly.
 - Added Robolectric coverage for empty and seeded-Room library reloads, `PlaybackService.onCreate()` initialization, and fallback notification delivery when foreground start is blocked.
 - Added player-level Robolectric coverage for inserting a new next item, moving an existing queued item, and preserving next-item behavior under a deterministic shuffle order.
-- Added a controlled API 28 Robolectric MediaStore scan test covering track, artist, album, genre, and all-tracks playlist persistence.
+- Added a controlled API 36 Robolectric MediaStore scan test covering track, artist, album, genre, and all-tracks playlist persistence.
+- Set the minimum supported Android version to Android 16/API 36, removed `WRITE_EXTERNAL_STORAGE` and the old storage-permission selector, and removed unreachable pre-Android-10/11 MediaStore, file-delete, filename-rename, and SAF fallback paths.
+- Upgraded Robolectric to 4.17 for API 36, aligned manifest-backed tests to API 36, and configured the Java 21 module opens required by Robolectric. The API-36 MediaStore scan fixture now uses a test provider compatible with Robolectric's `FakeMediaProvider`.
+- Removed five lint-baseline entries made obsolete by the API-36 floor.
 - Added regression coverage for `AudioHelper.getQueuedTracksLazily()` emitting the current track before the full ordered queue, with saved position and worker-thread callbacks.
 - Refreshed four stale lint-baseline records for the version catalog's moved path and updated lint messages; no dependency or SDK versions were changed.
-- Removed the inert `requestLegacyExternalStorage` flag for target SDK 36, reviewed manifest permissions and exported components, and refreshed the affected ScopedStorage lint-baseline message. The legacy storage permission remains capped at API 32 pending a support-floor decision.
+- Removed the inert `requestLegacyExternalStorage` flag, reviewed manifest permissions and exported components, and removed the legacy storage permission after the API-36 support-floor decision.
 - Converted source-track loading in `TracksActivity` to lifecycle-owned IO coroutine work, keeping adapter updates and placeholder state on the main dispatcher.
 - Converted `TracksActivity`'s file-to-playlist validation, MediaStore/Room lookup, and playlist insert to lifecycle-owned IO; retained the existing path-rescan callback.
 - Converted third-party URI track resolution to a cancellable suspend lookup on IO, consumed by `TrackActivity`'s lifecycle scope.
@@ -71,19 +74,37 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 
 Current uncommitted work on `main`:
 
+- `app/build.gradle.kts`
 - `app/lint-baseline.xml`
 - `app/src/main/AndroidManifest.xml`
+- `app/src/main/kotlin/org/fossify/musicplayer/activities/MainActivity.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/activities/SimpleControllerActivity.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/activities/TracksActivity.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/dialogs/EditDialog.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/extensions/Context.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/helpers/Constants.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/helpers/RoomHelper.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/helpers/SimpleMediaScanner.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/playback/PlaybackService.kt`
+- `app/src/test/kotlin/org/fossify/musicplayer/extensions/FolderTracksAwaitTest.kt`
+- `app/src/test/kotlin/org/fossify/musicplayer/helpers/AudioHelperQueueTest.kt`
+- `app/src/test/kotlin/org/fossify/musicplayer/helpers/SimpleMediaScannerTest.kt`
+- `app/src/test/kotlin/org/fossify/musicplayer/playback/PlaybackServiceTest.kt`
+- `app/src/test/kotlin/org/fossify/musicplayer/playback/library/MediaItemProviderTest.kt`
+- `app/src/test/kotlin/org/fossify/musicplayer/playback/player/SimpleMusicPlayerTest.kt`
+- `gradle/libs.versions.toml`
 - `COPILOT_HANDOFF.md`
 
 ## Environment and Validation Notes
 
 - Java 17 is available at `/usr/lib/jvm/java-17-openjdk-amd64`.
+- Robolectric 4.17 requires Java 21 to test API 36. This environment's JDK 21 is currently extracted at `/tmp/jdk-21.0.12.1+1`; module-open test flags are configured in `app/build.gradle.kts`.
 - ripgrep (rg) is now available at `/usr/bin/rg`.
 - `ANDROID_HOME` is `/home/vagrant/android-sdk`; API 36 and Build-Tools 36 were installed there. `local.properties` is intentionally absent.
 - The host now has 3.8 GiB RAM (about 2.8 GiB available at last check). Earlier combined builds OOM-killed daemons when the host had 1.9 GiB. Serial builds with a 1 GiB Gradle heap and Kotlin compilation in-process have passed; the repository default heap is 8 GiB.
-- Lint passes with the refreshed baseline, which suppresses 6 errors and 198 warnings; core reports 12 warnings and FOSS/GPlay report 14 each. No stale baseline entries remain.
+- Lint passes for all three debug variants with the refreshed baseline; core reports 14 warnings and FOSS/GPlay report 16 each. The baseline filters 5 errors and 194 warnings, with no stale entries.
 - The tests cover list movement, player-level next-item insertion/reordering including shuffle order, future and folder-callback completion, sleep-timer state, provider root construction and empty/seeded-Room reloads, service `onCreate()` initialization, fallback notification delivery, and a controlled populated MediaStore scan. A device-backed scan and Android OS enforcement of foreground-service restrictions remain untested. The folder bridge ignores callbacks after cancellation, but the external rescan itself is not cancellable.
-- The installed `testDevice` AVD could not boot: its configured userdata requires 7.37 GB while only 2.66 GB is free. An explicit temporary data path and partition-size override did not bypass the configured requirement.
+- The installed `testDevice` AVD still cannot boot in this environment: the root disk has insufficient space for its configured userdata, the `/vagrant` mount is CIFS and rejects QEMU qcow2 writes, and this user lacks `/dev/kvm` access.
 
 ## Recommended Next Steps
 
@@ -91,7 +112,7 @@ Current uncommitted work on `main`:
 2. Retain the generic Context artwork fallback for callers without an Activity owner and the tested `AudioHelper.getQueuedTracksLazily()` callback contract; revisit only if their ownership model changes.
 3. Review whether any remaining one-shot EventBus invalidations need a state-holder; recurring sleep-timer state has already moved to `StateFlow`.
 4. Retain the tested ExoPlayer shuffle-order workaround until AndroidX Media exposes shuffle-order control through `Player` (issue 325 remains open).
-5. Decide the new minimum supported Android version, then review storage permissions and manifest compatibility against that floor.
+5. Review storage behavior against the API-36 support floor as code paths evolve.
 6. Review the remaining lint warnings without broadening into unrelated dependency updates.
 7. Evaluate remaining stale libraries, including `EventBus` and `jAudioTagger`.
 
@@ -153,7 +174,7 @@ Current uncommitted work on `main`:
 
 ### P2: Simplify App Behavior
 
-- Remove or isolate storage and permission compatibility that is no longer needed after the support-floor decision.
+- [x] Remove or isolate storage and permission compatibility that is no longer needed after the support-floor decision.
 - [x] Review the manifest for obsolete permissions, exported declarations, and legacy compatibility flags.
 - Reduce UI duplication in adapters, fragments, and activity code.
 - Tighten the startup path so the app controller lifecycle is easier to reason about.

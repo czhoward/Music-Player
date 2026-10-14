@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 @RunWith(RobolectricTestRunner::class)
-@Config(application = MediaItemProviderTestApplication::class, sdk = [35])
+@Config(application = MediaItemProviderTestApplication::class, sdk = [36])
 class AudioHelperQueueTest {
     @Test
     fun lazyQueueLoadEmitsCurrentTrackThenFullQueueOffMain() {

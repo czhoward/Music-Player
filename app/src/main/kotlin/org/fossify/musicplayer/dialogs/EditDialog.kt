@@ -7,7 +7,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.extensions.*
-import org.fossify.commons.helpers.isRPlus
 import org.fossify.musicplayer.R
 import org.fossify.musicplayer.databinding.DialogRenameSongBinding
 import org.fossify.musicplayer.extensions.audioHelper
@@ -23,13 +22,8 @@ class EditDialog(val activity: BaseSimpleActivity, val track: Track, val callbac
             title.setText(track.title)
             artist.setText(track.artist)
             album.setText(track.album)
-            val filename = track.path.getFilenameFromPath()
-            fileName.setText(filename.substring(0, filename.lastIndexOf(".")))
-            extension.setText(track.path.getFilenameExtension())
-            if (isRPlus()) {
-                arrayOf(fileNameHint, extensionHint).forEach {
-                    it.beGone()
-                }
+            arrayOf(fileNameHint, extensionHint).forEach {
+                it.beGone()
             }
         }
 
@@ -43,10 +37,7 @@ class EditDialog(val activity: BaseSimpleActivity, val track: Track, val callbac
                         val newTitle = binding.title.value
                         val newArtist = binding.artist.value
                         val newAlbum = binding.album.value
-                        val newFilename = binding.fileName.value
-                        val newFileExtension = binding.extension.value
-
-                        if (newTitle.isEmpty() || newArtist.isEmpty() || newFilename.isEmpty() || newFileExtension.isEmpty()) {
+                        if (newTitle.isEmpty() || newArtist.isEmpty()) {
                             activity.toast(R.string.rename_song_empty)
                             return@setOnClickListener
                         }
@@ -57,26 +48,9 @@ class EditDialog(val activity: BaseSimpleActivity, val track: Track, val callbac
                                 track.title = newTitle
                                 track.album = newAlbum
                                 val oldPath = track.path
-                                val newPath = "${oldPath.getParentPath()}/$newFilename.$newFileExtension"
-                                if (oldPath == newPath) {
-                                    storeEditedSong(track, oldPath, newPath)
-                                    callback(track)
-                                    alertDialog.dismiss()
-                                    return@updateContentResolver
-                                }
-
-                                if (!isRPlus()) {
-                                    activity.renameFile(oldPath, newPath, false) { success, _ ->
-                                        if (success) {
-                                            storeEditedSong(track, oldPath, newPath)
-                                            track.path = newPath
-                                            callback(track)
-                                        } else {
-                                            activity.toast(R.string.rename_song_error)
-                                        }
-                                        alertDialog.dismiss()
-                                    }
-                                }
+                                storeEditedSong(track, oldPath, oldPath)
+                                callback(track)
+                                alertDialog.dismiss()
                             }
                         } else {
                             alertDialog.dismiss()

@@ -21,7 +21,6 @@ import org.fossify.commons.dialogs.FilePickerDialog
 import org.fossify.commons.dialogs.PermissionRequiredDialog
 import org.fossify.commons.extensions.*
 import org.fossify.commons.helpers.NavigationIcon
-import org.fossify.commons.helpers.isQPlus
 import org.fossify.musicplayer.R
 import org.fossify.musicplayer.adapters.TracksAdapter
 import org.fossify.musicplayer.adapters.TracksAdapter.Companion.TYPE_ALBUM
@@ -410,30 +409,18 @@ class TracksActivity : SimpleMusicActivity() {
     }
 
     private fun tryExportPlaylist() {
-        if (isQPlus()) {
-            ExportPlaylistDialog(this, config.lastExportPath, true) { file ->
-                Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
-                    type = MIME_TYPE_M3U
-                    putExtra(Intent.EXTRA_TITLE, file.name)
-                    addCategory(Intent.CATEGORY_OPENABLE)
+        ExportPlaylistDialog(this, config.lastExportPath, true) { file ->
+            Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                type = MIME_TYPE_M3U
+                putExtra(Intent.EXTRA_TITLE, file.name)
+                addCategory(Intent.CATEGORY_OPENABLE)
 
-                    try {
-                        startActivityForResult(this, PICK_EXPORT_FILE_INTENT)
-                    } catch (e: ActivityNotFoundException) {
-                        toast(org.fossify.commons.R.string.system_service_disabled, Toast.LENGTH_LONG)
-                    } catch (e: Exception) {
-                        showErrorToast(e)
-                    }
-                }
-            }
-        } else {
-            handlePermission(getPermissionToRequest()) { granted ->
-                if (granted) {
-                    ExportPlaylistDialog(this, config.lastExportPath, false) { file ->
-                        getFileOutputStream(file.toFileDirItem(this), true) { outputStream ->
-                            exportPlaylistTo(outputStream)
-                        }
-                    }
+                try {
+                    startActivityForResult(this, PICK_EXPORT_FILE_INTENT)
+                } catch (e: ActivityNotFoundException) {
+                    toast(org.fossify.commons.R.string.system_service_disabled, Toast.LENGTH_LONG)
+                } catch (e: Exception) {
+                    showErrorToast(e)
                 }
             }
         }

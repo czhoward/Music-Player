@@ -22,7 +22,7 @@ media3 = "1.10.1"
 room = "2.8.4"
 #Testing
 junit = "4.13.2"
-robolectric = "4.14.1"
+robolectric = "4.17"
 kotlinxCoroutines = "1.9.0"
 #Fossify
 commons = "6.1.6"
@@ -31,7 +31,7 @@ gradlePlugins-agp = "9.2.1"
 #build
 app-build-compileSDKVersion = "36"
 app-build-targetSDK = "36"
-app-build-minimumSDK = "26"
+app-build-minimumSDK = "36"
 app-build-javaVersion = "VERSION_17"
 app-build-kotlinJVMTarget = "17"
 [libraries]

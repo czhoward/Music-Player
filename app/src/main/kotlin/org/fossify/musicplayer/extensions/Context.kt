@@ -29,7 +29,6 @@ import kotlinx.coroutines.withContext
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.extensions.*
 import org.fossify.commons.helpers.ensureBackgroundThread
-import org.fossify.commons.helpers.isQPlus
 import org.fossify.musicplayer.databases.SongsDatabase
 import org.fossify.musicplayer.helpers.*
 import org.fossify.musicplayer.interfaces.*
@@ -207,23 +206,21 @@ fun Context.loadTrackCoverArt(track: Track?): Bitmap? {
         }
     }
 
-    if (isQPlus()) {
-        val coverArtHeight = resources.getCoverArtHeight()
-        val size = Size(coverArtHeight, coverArtHeight)
-        if (artworkUri.startsWith("content://")) {
-            try {
-                return contentResolver.loadThumbnail(artworkUri.toUri(), size, null)
-            } catch (ignored: Exception) {
-            }
+    val coverArtHeight = resources.getCoverArtHeight()
+    val size = Size(coverArtHeight, coverArtHeight)
+    if (artworkUri.startsWith("content://")) {
+        try {
+            return contentResolver.loadThumbnail(artworkUri.toUri(), size, null)
+        } catch (ignored: Exception) {
         }
+    }
 
-        val path = track.path
-        if (path.isNotEmpty() && File(path).exists()) {
-            try {
-                return ThumbnailUtils.createAudioThumbnail(File(track.path), size, null)
-            } catch (ignored: OutOfMemoryError) {
-            } catch (ignored: Exception) {
-            }
+    val path = track.path
+    if (path.isNotEmpty() && File(path).exists()) {
+        try {
+            return ThumbnailUtils.createAudioThumbnail(File(track.path), size, null)
+        } catch (ignored: OutOfMemoryError) {
+        } catch (ignored: Exception) {
         }
     }
 

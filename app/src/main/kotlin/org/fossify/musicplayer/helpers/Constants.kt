@@ -2,8 +2,6 @@ package org.fossify.musicplayer.helpers
 
 import androidx.core.net.toUri
 import org.fossify.commons.helpers.PERMISSION_READ_MEDIA_AUDIO
-import org.fossify.commons.helpers.PERMISSION_WRITE_STORAGE
-import org.fossify.commons.helpers.isTiramisuPlus
 
 const val ALL_TRACKS_PLAYLIST_ID = 1
 const val EQUALIZER_PRESET_CUSTOM = -1
@@ -123,4 +121,4 @@ const val M3U_DURATION_SEPARATOR = ","
 
 const val REPOSITORY_NAME = "Music-Player"
 
-fun getPermissionToRequest() = if (isTiramisuPlus()) PERMISSION_READ_MEDIA_AUDIO else PERMISSION_WRITE_STORAGE
+fun getPermissionToRequest() = PERMISSION_READ_MEDIA_AUDIO

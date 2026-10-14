@@ -5,8 +5,6 @@ import android.content.Context
 import android.provider.MediaStore
 import android.provider.MediaStore.Audio
 import org.fossify.commons.extensions.*
-import org.fossify.commons.helpers.isQPlus
-import org.fossify.commons.helpers.isRPlus
 import org.fossify.musicplayer.extensions.audioHelper
 import org.fossify.musicplayer.extensions.config
 import org.fossify.musicplayer.models.Events
@@ -37,18 +35,12 @@ class RoomHelper(val context: Context) {
             Audio.Media.ALBUM,
             Audio.Media.ALBUM_ID,
             Audio.Media.ARTIST_ID,
-            Audio.Media.YEAR
+            Audio.Media.YEAR,
+            Audio.Media.BUCKET_DISPLAY_NAME,
+            Audio.Media.GENRE,
+            Audio.Media.GENRE_ID,
+            Audio.Media.DISC_NUMBER
         )
-
-        if (isQPlus()) {
-            projection.add(Audio.Media.BUCKET_DISPLAY_NAME)
-        }
-
-        if (isRPlus()) {
-            projection.add(Audio.Media.GENRE)
-            projection.add(Audio.Media.GENRE_ID)
-            projection.add(Audio.Media.DISC_NUMBER)
-        }
 
         val pathsMap = HashSet<String>()
         paths.mapTo(pathsMap) { it }
@@ -76,24 +68,10 @@ class RoomHelper(val context: Context) {
                 val coverArt = ContentUris.withAppendedId(artworkUri, albumId).toString()
                 val year = cursor.getIntValueOrNull(Audio.Media.YEAR) ?: 0
                 val dateAdded = cursor.getIntValueOrNull(Audio.Media.DATE_ADDED) ?: 0
-                val folderName = if (isQPlus()) {
-                    cursor.getStringValue(Audio.Media.BUCKET_DISPLAY_NAME) ?: MediaStore.UNKNOWN_STRING
-                } else {
-                    ""
-                }
-
-                val genre: String
-                val genreId: Long
-                val discNumber: Int?
-                if (isRPlus()) {
-                    genre = cursor.getStringValue(Audio.Media.GENRE)
-                    genreId = cursor.getLongValue(Audio.Media.GENRE_ID)
-                    discNumber = cursor.getStringValue(Audio.Media.DISC_NUMBER)?.toIntOrNull()
-                } else {
-                    genre = ""
-                    genreId = 0
-                    discNumber = null
-                }
+                val folderName = cursor.getStringValue(Audio.Media.BUCKET_DISPLAY_NAME) ?: MediaStore.UNKNOWN_STRING
+                val genre = cursor.getStringValue(Audio.Media.GENRE)
+                val genreId = cursor.getLongValue(Audio.Media.GENRE_ID)
+                val discNumber = cursor.getStringValue(Audio.Media.DISC_NUMBER)?.toIntOrNull()
 
                 val song = Track(
                     id = 0, mediaStoreId = mediaStoreId, title = title, artist = artist, path = path, duration = duration, album = album, genre = genre,

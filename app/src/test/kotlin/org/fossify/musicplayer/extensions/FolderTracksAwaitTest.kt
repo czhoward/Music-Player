@@ -14,7 +14,7 @@ import org.robolectric.annotation.Config
 import java.nio.file.Files
 
 @RunWith(RobolectricTestRunner::class)
-@Config(application = MediaItemProviderTestApplication::class, sdk = [35])
+@Config(application = MediaItemProviderTestApplication::class, sdk = [36])
 class FolderTracksAwaitTest {
     @Test
     fun awaitsTheEmptyFolderCallback() = runBlocking {
