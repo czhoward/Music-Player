@@ -169,8 +169,12 @@ inline fun Player.maybePreparePlayer(context: Context, crossinline callback: (su
         context.audioHelper.getQueuedTracksLazily { tracks, startIndex, startPositionMs ->
             if (!prepared) {
                 prepareUsingTracks(tracks = tracks, startIndex = startIndex, startPositionMs = startPositionMs) {
-                    callback(it)
                     prepared = it
+                    try {
+                        callback(it)
+                    } finally {
+                        prepareInProgress = false
+                    }
                 }
             } else {
                 if (tracks.size == 1) {

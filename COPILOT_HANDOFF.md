@@ -24,6 +24,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Upgraded Robolectric to 4.17 for API 36, aligned manifest-backed tests to API 36, and configured the Java 21 module opens required by Robolectric. The API-36 MediaStore scan fixture now uses a test provider compatible with Robolectric's `FakeMediaProvider`.
 - Removed five lint-baseline entries made obsolete by the API-36 floor.
 - Added regression coverage for `AudioHelper.getQueuedTracksLazily()` emitting the current track before the full ordered queue, with saved position and worker-thread callbacks.
+- Released `maybePreparePlayer()`'s in-progress guard after its initial prepare callback so an empty library does not permanently block retries; added a Robolectric regression test, which compiles but still needs execution with Java 21.
 - Refreshed four stale lint-baseline records for the version catalog's moved path and updated lint messages; no dependency or SDK versions were changed.
 - Removed the inert `requestLegacyExternalStorage` flag, reviewed manifest permissions and exported components, and removed the legacy storage permission after the API-36 support-floor decision.
 - Converted source-track loading in `TracksActivity` to lifecycle-owned IO coroutine work, keeping adapter updates and placeholder state on the main dispatcher.
@@ -98,7 +99,7 @@ Current uncommitted work on `main`:
 ## Environment and Validation Notes
 
 - Java 17 is available at `/usr/lib/jvm/java-17-openjdk-amd64`.
-- Robolectric 4.17 requires Java 21 to test API 36. This environment's JDK 21 is currently extracted at `/tmp/jdk-21.0.12.1+1`; module-open test flags are configured in `app/build.gradle.kts`.
+- Robolectric 4.17 requires Java 21 to test API 36. The previously extracted JDK at `/tmp/jdk-21.0.12.1+1` is no longer present, and only Java 17 is currently installed; module-open test flags are configured in `app/build.gradle.kts`.
 - ripgrep (rg) is now available at `/usr/bin/rg`.
 - `ANDROID_HOME` is `/home/vagrant/android-sdk`; API 36 and Build-Tools 36 were installed there. `local.properties` is intentionally absent.
 - The host now has 3.8 GiB RAM (about 2.8 GiB available at last check). Earlier combined builds OOM-killed daemons when the host had 1.9 GiB. Serial builds with a 1 GiB Gradle heap and Kotlin compilation in-process have passed; the repository default heap is 8 GiB.
@@ -110,11 +111,11 @@ Current uncommitted work on `main`:
 
 1. Cover Android system-level foreground-service behavior on a device or emulator with enough disk space; controlled MediaStore scan coverage is now in Robolectric.
 2. Retain the generic Context artwork fallback for callers without an Activity owner and the tested `AudioHelper.getQueuedTracksLazily()` callback contract; revisit only if their ownership model changes.
-3. Review whether any remaining one-shot EventBus invalidations need a state-holder; recurring sleep-timer state has already moved to `StateFlow`.
+3. EventBus audit complete: retain the non-sticky one-shot invalidations for now. `MainActivity` is the sole subscriber, and replacing these with a replaying state-holder would change delivery semantics; recurring timer state already uses `StateFlow`.
 4. Retain the tested ExoPlayer shuffle-order workaround until AndroidX Media exposes shuffle-order control through `Player` (issue 325 remains open).
-5. Review storage behavior against the API-36 support floor as code paths evolve.
-6. Review the remaining lint warnings without broadening into unrelated dependency updates.
-7. Evaluate remaining stale libraries, including `EventBus` and `jAudioTagger`.
+5. API-36 storage-path audit found no legacy storage permissions or SDK-gated compatibility branches. MediaStore and SAF remain the supported paths; verify the manual filesystem scan fallback on a device.
+6. Lint warnings reviewed: defer dependency upgrades, choose an explicit backup policy before changing `allowBackup`, and consider the obsolete v26 icon qualifier and unused resources without removing localized entries or flavor overrides blindly.
+7. Dependency review complete: retain `EventBus` for non-sticky app invalidations and `jAudioTagger` for embedded-tag editing across supported audio formats; revisit only if a concrete replacement preserves those contracts.
 
 ## Planned Modernization TODO
 
@@ -169,7 +170,7 @@ Current uncommitted work on `main`:
 - [x] Convert Albums, Artists, Folders, Genres, and Playlists pager queries to their hosting Activity's lifecycle scope.
 - [x] Move Activity-owned artwork lookup and bitmap extraction to lifecycle-owned IO while retaining the generic Context fallback.
 - [x] Audit remaining background-thread helpers; retain only callback utilities without a single lifecycle owner.
-- Audit `EventBus` usage and decide whether each path should move to a state-holder or be kept behind a smaller boundary.
+- [x] Audit `EventBus` usage; retain the non-sticky one-shot invalidations because `MainActivity` is the sole lifecycle-bound subscriber and these events should not replay. Sleep-timer display state remains in `StateFlow`, with expiry as a one-shot event.
 - [x] Review the deprecated shuffle-order workaround; retain it until AndroidX Media issue 325 is resolved with a public `Player` API.
 
 ### P2: Simplify App Behavior
@@ -182,7 +183,7 @@ Current uncommitted work on `main`:
 ### P3: Dependency and Architecture Cleanup
 
 - [x] Replace AutofitTextView with platform autosizing and remove its dependency and license entry.
-- Evaluate remaining stale libraries such as `EventBus` and `jAudioTagger`.
+- [x] Evaluate `EventBus` and `jAudioTagger`; retain them for non-sticky invalidations and embedded-tag editing, respectively, until a replacement preserves those contracts.
 - Decide whether the app should stay single-module or move toward a smaller internal module split.
 - Improve test coverage for database, playback, and library scanning logic.
 
