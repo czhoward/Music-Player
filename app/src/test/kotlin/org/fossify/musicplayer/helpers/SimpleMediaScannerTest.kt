@@ -30,14 +30,62 @@ import java.util.concurrent.TimeUnit
 @RunWith(RobolectricTestRunner::class)
 @Config(application = SimpleMediaScannerTestApplication::class, sdk = [36])
 class SimpleMediaScannerTest {
+    private val trackId = 17L
+    private val artistId = 41L
+    private val albumId = 31L
+    private val genreId = 51L
+
     @Test
     fun scanImportsMediaStoreTrackAndRelatedMetadata() {
         val context = RuntimeEnvironment.getApplication()
         shadowOf(context).grantPermissions(Manifest.permission.READ_MEDIA_AUDIO)
-        val trackId = 17L
-        val artistId = 41L
-        val albumId = 31L
-        val genreId = 51L
+        registerMediaStoreFixture(context)
+
+        context.config.wasAllTracksPlaylistCreated = false
+        context.config.excludedFolders = mutableSetOf()
+        context.config.tracksRemovedFromAllTracksPlaylist = mutableSetOf()
+        val scanCompleted = CountDownLatch(1)
+        var completedSuccessfully = false
+        SimpleMediaScanner(context).scan { complete ->
+            if (complete) {
+                completedSuccessfully = true
+                scanCompleted.countDown()
+            }
+        }
+
+        assertTrue("MediaStore scan did not complete", scanCompleted.await(10, TimeUnit.SECONDS))
+        assertTrue(completedSuccessfully)
+
+        val tracksRead = CountDownLatch(1)
+        var tracks: List<Track>? = null
+        var playlistTracks: List<Track>? = null
+        var readFailure: Throwable? = null
+        Thread {
+            try {
+                tracks = context.audioHelper.getAllTracks()
+                playlistTracks = context.audioHelper.getPlaylistTracks(ALL_TRACKS_PLAYLIST_ID)
+            } catch (throwable: Throwable) {
+                readFailure = throwable
+            } finally {
+                tracksRead.countDown()
+            }
+        }.start()
+        assertTrue("Could not read scanned tracks", tracksRead.await(10, TimeUnit.SECONDS))
+        readFailure?.let { throw AssertionError("Could not read scanned tracks", it) }
+
+        val track = tracks!!.single { it.mediaStoreId == trackId }
+        assertEquals("Test Track", track.title)
+        assertEquals("Test Artist", track.artist)
+        assertEquals("Test Album", track.album)
+        assertEquals(2, track.trackId)
+        assertEquals(1, track.discNumber)
+        assertEquals(artistId, track.artistId)
+        assertEquals(albumId, track.albumId)
+        assertEquals(genreId, track.genreId)
+        assertEquals(trackId, playlistTracks!!.single().mediaStoreId)
+    }
+
+    private fun registerMediaStoreFixture(context: android.content.Context) {
         val mediaUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
         val cursors = mutableMapOf<Uri, Cursor>()
 
@@ -123,49 +171,6 @@ class SimpleMediaScannerTest {
         }
         ShadowContentResolver.registerProviderInternal("media", mediaProvider)
         assertNotNull(context.contentResolver.query(mediaUri, arrayOf(MediaStore.Audio.Media._ID), null, null, null))
-
-        context.config.wasAllTracksPlaylistCreated = false
-        context.config.excludedFolders = mutableSetOf()
-        context.config.tracksRemovedFromAllTracksPlaylist = mutableSetOf()
-        val scanCompleted = CountDownLatch(1)
-        var completedSuccessfully = false
-        SimpleMediaScanner(context).scan { complete ->
-            if (complete) {
-                completedSuccessfully = true
-                scanCompleted.countDown()
-            }
-        }
-
-        assertTrue("MediaStore scan did not complete", scanCompleted.await(10, TimeUnit.SECONDS))
-        assertTrue(completedSuccessfully)
-
-        val tracksRead = CountDownLatch(1)
-        var tracks: List<Track>? = null
-        var playlistTracks: List<Track>? = null
-        var readFailure: Throwable? = null
-        Thread {
-            try {
-                tracks = context.audioHelper.getAllTracks()
-                playlistTracks = context.audioHelper.getPlaylistTracks(ALL_TRACKS_PLAYLIST_ID)
-            } catch (throwable: Throwable) {
-                readFailure = throwable
-            } finally {
-                tracksRead.countDown()
-            }
-        }.start()
-        assertTrue("Could not read scanned tracks", tracksRead.await(10, TimeUnit.SECONDS))
-        readFailure?.let { throw AssertionError("Could not read scanned tracks", it) }
-
-        val track = tracks!!.single { it.mediaStoreId == trackId }
-        assertEquals("Test Track", track.title)
-        assertEquals("Test Artist", track.artist)
-        assertEquals("Test Album", track.album)
-        assertEquals(2, track.trackId)
-        assertEquals(1, track.discNumber)
-        assertEquals(artistId, track.artistId)
-        assertEquals(albumId, track.albumId)
-        assertEquals(genreId, track.genreId)
-        assertEquals(trackId, playlistTracks!!.single().mediaStoreId)
     }
 
     private fun registerCursor(

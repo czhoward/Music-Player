@@ -24,7 +24,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Upgraded Robolectric to 4.17 for API 36, aligned manifest-backed tests to API 36, and configured the Java 21 module opens required by Robolectric. The API-36 MediaStore scan fixture now uses a test provider compatible with Robolectric's `FakeMediaProvider`.
 - Removed five lint-baseline entries made obsolete by the API-36 floor.
 - Added regression coverage for `AudioHelper.getQueuedTracksLazily()` emitting the current track before the full ordered queue, with saved position and worker-thread callbacks.
-- Released `maybePreparePlayer()`'s in-progress guard after its initial prepare callback so an empty library does not permanently block retries; added a Robolectric regression test, which compiles but still needs execution with Java 21.
+- Released `maybePreparePlayer()`'s in-progress guard after its initial prepare callback so an empty library does not permanently block retries; added a Robolectric regression test that passes under Java 21.
 - Refreshed four stale lint-baseline records for the version catalog's moved path and updated lint messages; no dependency or SDK versions were changed.
 - Removed the inert `requestLegacyExternalStorage` flag, reviewed manifest permissions and exported components, and removed the legacy storage permission after the API-36 support-floor decision.
 - Converted source-track loading in `TracksActivity` to lifecycle-owned IO coroutine work, keeping adapter updates and placeholder state on the main dispatcher.
@@ -68,7 +68,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Reformatted a long `AlbumHeader` constructor call in `TracksActivity` to satisfy Detekt.
 - Compiled the `coreDebug`, `fossDebug`, and `gplayDebug` variants successfully.
 - Ran lint successfully for all three debug variants and Detekt successfully across 107 Kotlin files.
-- Ran the core JVM/Robolectric unit tests successfully: 15 tests, 0 failures.
+- Ran the core JVM/Robolectric unit tests successfully: 16 tests, 0 failures. Split the long `SimpleMediaScannerTest` method so Detekt passes, and re-ran Detekt and core lint successfully.
 - Verified the final patch with `git diff --check`.
 
 ## Current Working Tree
@@ -99,7 +99,7 @@ Current uncommitted work on `main`:
 ## Environment and Validation Notes
 
 - Java 17 is available at `/usr/lib/jvm/java-17-openjdk-amd64`.
-- Robolectric 4.17 requires Java 21 to test API 36. The previously extracted JDK at `/tmp/jdk-21.0.12.1+1` is no longer present, and only Java 17 is currently installed; module-open test flags are configured in `app/build.gradle.kts`.
+- Robolectric 4.17 requires Java 21 to test API 36. JDK 21 (Temurin) is installed at `/home/vagrant/jdks/jdk-21.0.12.1+1` (`apt install openjdk-21-jdk` needs interactive sudo and failed); use it as `JAVA_HOME` for `:app:testCoreDebugUnitTest`, and Java 17 for other tasks. Module-open test flags are configured in `app/build.gradle.kts`.
 - ripgrep (rg) is now available at `/usr/bin/rg`.
 - `ANDROID_HOME` is `/home/vagrant/android-sdk`; API 36 and Build-Tools 36 were installed there. `local.properties` is intentionally absent.
 - The host now has 3.8 GiB RAM (about 2.8 GiB available at last check). Earlier combined builds OOM-killed daemons when the host had 1.9 GiB. Serial builds with a 1 GiB Gradle heap and Kotlin compilation in-process have passed; the repository default heap is 8 GiB.
