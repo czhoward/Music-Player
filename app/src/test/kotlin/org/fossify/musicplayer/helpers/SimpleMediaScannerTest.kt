@@ -36,13 +36,13 @@ class SimpleMediaScannerTest {
     private val genreId = 51L
 
     @Test
-    fun scanImportsMediaStoreTrackAndRelatedMetadata() {
+    fun scanImportsMediaStoreTrackAndSkipsExcludedFolders() {
         val context = RuntimeEnvironment.getApplication()
         shadowOf(context).grantPermissions(Manifest.permission.READ_MEDIA_AUDIO)
         registerMediaStoreFixture(context)
 
         context.config.wasAllTracksPlaylistCreated = false
-        context.config.excludedFolders = mutableSetOf()
+        context.config.excludedFolders = mutableSetOf("/excluded")
         context.config.tracksRemovedFromAllTracksPlaylist = mutableSetOf()
         val scanCompleted = CountDownLatch(1)
         var completedSuccessfully = false
@@ -73,6 +73,8 @@ class SimpleMediaScannerTest {
         assertTrue("Could not read scanned tracks", tracksRead.await(10, TimeUnit.SECONDS))
         readFailure?.let { throw AssertionError("Could not read scanned tracks", it) }
 
+        assertEquals(listOf(trackId), tracks!!.map { it.mediaStoreId })
+        assertEquals(listOf(trackId), playlistTracks!!.map { it.mediaStoreId })
         val track = tracks!!.single { it.mediaStoreId == trackId }
         assertEquals("Test Track", track.title)
         assertEquals("Test Artist", track.artist)
@@ -125,6 +127,25 @@ class SimpleMediaScannerTest {
                 "Jazz",
                 genreId,
                 1
+            ),
+            listOf(
+                arrayOf(
+                    trackId + 1,
+                    188000L,
+                    "/excluded/hidden.mp3",
+                    "Excluded Track",
+                    "Test Artist",
+                    "Test Album",
+                    albumId,
+                    artistId,
+                    "1003/10",
+                    2024,
+                    11,
+                    "excluded",
+                    "Jazz",
+                    genreId,
+                    1
+                )
             )
         )
         registerCursor(
@@ -177,11 +198,12 @@ class SimpleMediaScannerTest {
         cursors: MutableMap<Uri, Cursor>,
         uri: Uri,
         columns: Array<String>,
-        row: Array<Any>
+        row: Array<Any>,
+        additionalRows: List<Array<Any>> = emptyList()
     ) {
         val cursor = RoboCursor().apply {
             setColumnNames(columns.toList())
-            setResults(arrayOf(row))
+            setResults((listOf(row) + additionalRows).toTypedArray())
         }
         cursors[uri] = cursor
     }
