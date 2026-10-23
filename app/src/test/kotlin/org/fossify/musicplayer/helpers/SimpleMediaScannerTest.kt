@@ -24,6 +24,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowContentResolver
 import org.robolectric.fakes.RoboCursor
 import org.robolectric.Shadows.shadowOf
+import java.util.Collections
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
@@ -36,17 +37,19 @@ class SimpleMediaScannerTest {
     private val genreId = 51L
 
     @Test
-    fun scanImportsMediaStoreTrackAndSkipsExcludedFolders() {
+    fun scanHonorsExcludedFoldersAndAllTracksPlaylistRemovals() {
         val context = RuntimeEnvironment.getApplication()
         shadowOf(context).grantPermissions(Manifest.permission.READ_MEDIA_AUDIO)
         registerMediaStoreFixture(context)
 
         context.config.wasAllTracksPlaylistCreated = false
         context.config.excludedFolders = mutableSetOf("/excluded")
-        context.config.tracksRemovedFromAllTracksPlaylist = mutableSetOf()
+        context.config.tracksRemovedFromAllTracksPlaylist = mutableSetOf((trackId + 2).toString())
         val scanCompleted = CountDownLatch(1)
+        val callbackStages = Collections.synchronizedList(mutableListOf<Boolean>())
         var completedSuccessfully = false
         SimpleMediaScanner(context).scan { complete ->
+            callbackStages += complete
             if (complete) {
                 completedSuccessfully = true
                 scanCompleted.countDown()
@@ -55,6 +58,7 @@ class SimpleMediaScannerTest {
 
         assertTrue("MediaStore scan did not complete", scanCompleted.await(10, TimeUnit.SECONDS))
         assertTrue(completedSuccessfully)
+        assertEquals(listOf(false, true), callbackStages)
 
         val tracksRead = CountDownLatch(1)
         var tracks: List<Track>? = null
@@ -73,7 +77,7 @@ class SimpleMediaScannerTest {
         assertTrue("Could not read scanned tracks", tracksRead.await(10, TimeUnit.SECONDS))
         readFailure?.let { throw AssertionError("Could not read scanned tracks", it) }
 
-        assertEquals(listOf(trackId), tracks!!.map { it.mediaStoreId })
+        assertEquals(listOf(trackId, trackId + 2), tracks!!.map { it.mediaStoreId }.sorted())
         assertEquals(listOf(trackId), playlistTracks!!.map { it.mediaStoreId })
         val track = tracks!!.single { it.mediaStoreId == trackId }
         assertEquals("Test Track", track.title)
@@ -90,10 +94,23 @@ class SimpleMediaScannerTest {
     private fun registerMediaStoreFixture(context: android.content.Context) {
         val mediaUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
         val cursors = mutableMapOf<Uri, Cursor>()
+        registerMediaTracksCursor(cursors)
+        registerMetadataCursors(cursors)
 
+        val mediaProvider = TestMediaStoreProvider(cursors).apply {
+            attachInfo(context, ProviderInfo().apply {
+                authority = "media"
+                packageName = context.packageName
+            })
+        }
+        ShadowContentResolver.registerProviderInternal("media", mediaProvider)
+        assertNotNull(context.contentResolver.query(mediaUri, arrayOf(MediaStore.Audio.Media._ID), null, null, null))
+    }
+
+    private fun registerMediaTracksCursor(cursors: MutableMap<Uri, Cursor>) {
         registerCursor(
             cursors,
-            mediaUri,
+            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
             arrayOf(
                 MediaStore.Audio.Media._ID,
                 MediaStore.Audio.Media.DURATION,
@@ -145,9 +162,29 @@ class SimpleMediaScannerTest {
                     "Jazz",
                     genreId,
                     1
+                ),
+                arrayOf(
+                    trackId + 2,
+                    188000L,
+                    "/music/removed.mp3",
+                    "Removed From All Tracks",
+                    "Test Artist",
+                    "Test Album",
+                    albumId,
+                    artistId,
+                    "1004/10",
+                    2024,
+                    12,
+                    "Music",
+                    "Jazz",
+                    genreId,
+                    1
                 )
             )
         )
+    }
+
+    private fun registerMetadataCursors(cursors: MutableMap<Uri, Cursor>) {
         registerCursor(
             cursors,
             MediaStore.Audio.Artists.EXTERNAL_CONTENT_URI,
@@ -184,14 +221,6 @@ class SimpleMediaScannerTest {
             arrayOf(MediaStore.Audio.Genres.Members.GENRE_ID, MediaStore.Audio.Genres.Members.AUDIO_ID),
             arrayOf(genreId, trackId)
         )
-        val mediaProvider = TestMediaStoreProvider(cursors).apply {
-            attachInfo(context, ProviderInfo().apply {
-                authority = "media"
-                packageName = context.packageName
-            })
-        }
-        ShadowContentResolver.registerProviderInternal("media", mediaProvider)
-        assertNotNull(context.contentResolver.query(mediaUri, arrayOf(MediaStore.Audio.Media._ID), null, null, null))
     }
 
     private fun registerCursor(
