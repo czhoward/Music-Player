@@ -25,6 +25,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Removed five lint-baseline entries made obsolete by the API-36 floor.
 - Added regression coverage for `AudioHelper.getQueuedTracksLazily()` emitting the current track before the full ordered queue, with saved position and worker-thread callbacks.
 - Released `maybePreparePlayer()`'s in-progress guard after its initial prepare callback so an empty library does not permanently block retries; added a Robolectric regression test that passes under Java 21.
+- Merged the obsolete `mipmap-anydpi-v26` folder into `mipmap-anydpi` and removed the 95 density-specific launcher bitmaps that the adaptive icons always shadow at API 36. All three variants rebuilt from scratch and lint passes. After resource deletions, run with `--rerun-tasks` once, since a stale generated R class produces misleading `Unresolved reference 'mipmap'` errors.
 - Refreshed four stale lint-baseline records for the version catalog's moved path and updated lint messages; no dependency or SDK versions were changed.
 - Removed the inert `requestLegacyExternalStorage` flag, reviewed manifest permissions and exported components, and removed the legacy storage permission after the API-36 support-floor decision.
 - Converted source-track loading in `TracksActivity` to lifecycle-owned IO coroutine work, keeping adapter updates and placeholder state on the main dispatcher.
@@ -58,6 +59,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Moved `TracksHeaderAdapter`'s album lookup to the Activity lifecycle IO scope while keeping artwork loading on its existing callback path.
 - Moved track-deletion selection and row-position snapshots in both track adapters back to main before the existing MediaStore deletion workflow.
 - Removed redundant background-thread wrappers from `TracksAdapter` and `TracksHeaderAdapter` deletion callbacks; the shared Activity flow owns IO and main-thread permission handling.
+- Consolidated repeated category-adapter row background, selection, title-highlighting, and quantity-label binding in `BaseMusicAdapter`.
 - Converted `AlbumsTracksAdapter`'s album-track lookup and deletion setup to host Activity lifecycle IO after snapshotting selection and items on main.
 - Moved album, artist, and genre deletion selection/position snapshots to main before their existing track/database deletion work.
 - Converted `SelectPlaylistDialog`'s playlist query to the host `BaseSimpleActivity` lifecycle scope and IO dispatcher.
@@ -103,7 +105,7 @@ Current uncommitted work on `main`:
 - ripgrep (rg) is now available at `/usr/bin/rg`.
 - `ANDROID_HOME` is `/home/vagrant/android-sdk`; API 36 and Build-Tools 36 were installed there. `local.properties` is intentionally absent.
 - The host now has 3.8 GiB RAM (about 2.8 GiB available at last check). Earlier combined builds OOM-killed daemons when the host had 1.9 GiB. Serial builds with a 1 GiB Gradle heap and Kotlin compilation in-process have passed; the repository default heap is 8 GiB.
-- Lint passes for all three debug variants with the refreshed baseline; core reports 14 warnings and FOSS/GPlay report 16 each. The baseline filters 5 errors and 194 warnings, with no stale entries.
+- Lint passes for all three debug variants with the refreshed baseline; core reports 13 warnings and FOSS/GPlay report 15 each. The baseline filters 5 errors and 194 warnings, with no stale entries.
 - The tests cover list movement, player-level next-item insertion/reordering including shuffle order, future and folder-callback completion, sleep-timer state, provider root construction and empty/seeded-Room reloads, service `onCreate()` initialization, fallback notification delivery, and a controlled populated MediaStore scan. A device-backed scan and Android OS enforcement of foreground-service restrictions remain untested. The folder bridge ignores callbacks after cancellation, but the external rescan itself is not cancellable.
 - The installed `testDevice` AVD still cannot boot in this environment: the root disk has insufficient space for its configured userdata, the `/vagrant` mount is CIFS and rejects QEMU qcow2 writes, and this user lacks `/dev/kvm` access.
 
@@ -114,7 +116,7 @@ Current uncommitted work on `main`:
 3. EventBus audit complete: retain the non-sticky one-shot invalidations for now. `MainActivity` is the sole subscriber, and replacing these with a replaying state-holder would change delivery semantics; recurring timer state already uses `StateFlow`.
 4. Retain the tested ExoPlayer shuffle-order workaround until AndroidX Media exposes shuffle-order control through `Player` (issue 325 remains open).
 5. API-36 storage-path audit found no legacy storage permissions or SDK-gated compatibility branches. MediaStore and SAF remain the supported paths; verify the manual filesystem scan fallback on a device.
-6. Lint warnings reviewed: defer dependency upgrades, choose an explicit backup policy before changing `allowBackup`, and consider the obsolete v26 icon qualifier and unused resources without removing localized entries or flavor overrides blindly.
+6. Lint warnings reviewed: defer dependency upgrades, choose an explicit backup policy before changing `allowBackup`, and consider the unused `rename_song_error` string (present in 56 locales) and flavor bool overrides without removing them blindly.
 7. Dependency review complete: retain `EventBus` for non-sticky app invalidations and `jAudioTagger` for embedded-tag editing across supported audio formats; revisit only if a concrete replacement preserves those contracts.
 
 ## Planned Modernization TODO
@@ -177,6 +179,7 @@ Current uncommitted work on `main`:
 
 - [x] Remove or isolate storage and permission compatibility that is no longer needed after the support-floor decision.
 - [x] Review the manifest for obsolete permissions, exported declarations, and legacy compatibility flags.
+- [x] Consolidate shared category-row title, selection, and quantity-label binding in the base music adapter.
 - Reduce UI duplication in adapters, fragments, and activity code.
 - Tighten the startup path so the app controller lifecycle is easier to reason about.
 

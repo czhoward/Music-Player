@@ -3,7 +3,9 @@ package org.fossify.musicplayer.adapters
 import android.annotation.SuppressLint
 import android.graphics.drawable.Drawable
 import android.view.Menu
+import android.view.View
 import android.widget.ImageView
+import android.widget.TextView
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.CenterCrop
@@ -14,7 +16,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.adapters.MyRecyclerViewAdapter
+import org.fossify.commons.extensions.highlightTextPart
 import org.fossify.commons.extensions.getProperPrimaryColor
+import org.fossify.commons.extensions.setupViewBackground
 import org.fossify.commons.views.MyRecyclerView
 import org.fossify.musicplayer.activities.SimpleControllerActivity
 import org.fossify.musicplayer.extensions.*
@@ -63,6 +67,22 @@ abstract class BaseMusicAdapter<Type>(
 
     open fun getSelectedItems(): List<Type> {
         return items.filter { selectedKeys.contains(it.hashCode()) }.toList()
+    }
+
+    protected fun bindItemTitle(itemView: View, selectionView: View, titleView: TextView, title: String, item: Any) {
+        itemView.setupViewBackground(context)
+        selectionView.isSelected = selectedKeys.contains(item.hashCode())
+        titleView.text = if (textToHighlight.isEmpty()) {
+            title
+        } else {
+            title.highlightTextPart(textToHighlight, properPrimaryColor)
+        }
+        titleView.setTextColor(textColor)
+    }
+
+    protected fun bindQuantityText(textView: TextView, quantityResource: Int, quantity: Int) {
+        textView.text = resources.getQuantityString(quantityResource, quantity, quantity)
+        textView.setTextColor(textColor)
     }
 
     open fun updateItems(newItems: ArrayList<Type>, highlightText: String = "", forceUpdate: Boolean = false) {

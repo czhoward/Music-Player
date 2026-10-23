@@ -9,8 +9,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.dialogs.ConfirmationDialog
-import org.fossify.commons.extensions.highlightTextPart
-import org.fossify.commons.extensions.setupViewBackground
 import org.fossify.commons.views.MyRecyclerView
 import org.fossify.musicplayer.R
 import org.fossify.musicplayer.databinding.ItemAlbumBinding
@@ -86,14 +84,8 @@ class AlbumsAdapter(activity: BaseSimpleActivity, items: ArrayList<Album>, recyc
 
     private fun setupView(view: View, album: Album) {
         ItemAlbumBinding.bind(view).apply {
-            root.setupViewBackground(context)
-            albumFrame.isSelected = selectedKeys.contains(album.hashCode())
-            albumTitle.text = if (textToHighlight.isEmpty()) album.title else album.title.highlightTextPart(textToHighlight, properPrimaryColor)
-            albumTitle.setTextColor(textColor)
-
-            val tracks = resources.getQuantityString(R.plurals.tracks_plural, album.trackCnt, album.trackCnt)
-            albumTracks.text = tracks
-            albumTracks.setTextColor(textColor)
+            bindItemTitle(root, albumFrame, albumTitle, album.title, album)
+            bindQuantityText(albumTracks, R.plurals.tracks_plural, album.trackCnt)
 
             context.getAlbumCoverArt(album) { coverArt ->
                 loadImage(albumImage, coverArt, placeholderBig)

@@ -9,8 +9,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.dialogs.ConfirmationDialog
-import org.fossify.commons.extensions.highlightTextPart
-import org.fossify.commons.extensions.setupViewBackground
 import org.fossify.commons.views.MyRecyclerView
 import org.fossify.musicplayer.R
 import org.fossify.musicplayer.databinding.ItemGenreBinding
@@ -86,21 +84,10 @@ class GenresAdapter(activity: BaseSimpleActivity, items: ArrayList<Genre>, recyc
 
     private fun setupView(view: View, genre: Genre) {
         ItemGenreBinding.bind(view).apply {
-            root.setupViewBackground(activity)
-            genreFrame.isSelected = selectedKeys.contains(genre.hashCode())
-            genreTitle.text = if (textToHighlight.isEmpty()) {
-                genre.title
-            } else {
-                genre.title.highlightTextPart(textToHighlight, properPrimaryColor)
-            }
+            bindItemTitle(root, genreFrame, genreTitle, genre.title, genre)
+            bindQuantityText(genreTracks, R.plurals.tracks_plural, genre.trackCnt)
 
-            genreTitle.setTextColor(textColor)
-
-            val tracks = resources.getQuantityString(R.plurals.tracks_plural, genre.trackCnt, genre.trackCnt)
-            genreTracks.text = tracks
-            genreTracks.setTextColor(textColor)
-
-            activity.getGenreCoverArt(genre) { coverArt ->
+            context.getGenreCoverArt(genre) { coverArt ->
                 loadImage(genreImage, coverArt, placeholderBig)
             }
         }

@@ -9,8 +9,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.fossify.commons.activities.BaseSimpleActivity
-import org.fossify.commons.extensions.highlightTextPart
-import org.fossify.commons.extensions.setupViewBackground
 import org.fossify.commons.views.MyRecyclerView
 import org.fossify.musicplayer.R
 import org.fossify.musicplayer.databinding.ItemPlaylistBinding
@@ -101,14 +99,9 @@ class PlaylistsAdapter(
 
     private fun setupView(view: View, playlist: Playlist) {
         ItemPlaylistBinding.bind(view).apply {
-            root.setupViewBackground(context)
-            playlistFrame.isSelected = selectedKeys.contains(playlist.hashCode())
-            playlistTitle.text = if (textToHighlight.isEmpty()) playlist.title else playlist.title.highlightTextPart(textToHighlight, properPrimaryColor)
-            playlistTitle.setTextColor(textColor)
+            bindItemTitle(root, playlistFrame, playlistTitle, playlist.title, playlist)
 
-            val tracks = resources.getQuantityString(R.plurals.tracks_plural, playlist.trackCount, playlist.trackCount)
-            playlistTracks.text = tracks
-            playlistTracks.setTextColor(textColor)
+            bindQuantityText(playlistTracks, R.plurals.tracks_plural, playlist.trackCount)
         }
     }
 
