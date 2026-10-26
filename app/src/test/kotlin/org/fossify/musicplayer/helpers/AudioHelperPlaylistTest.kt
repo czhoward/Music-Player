@@ -3,7 +3,9 @@ package org.fossify.musicplayer.helpers
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import org.fossify.musicplayer.extensions.playlistDAO
 import org.fossify.musicplayer.extensions.tracksDAO
+import org.fossify.musicplayer.models.Playlist
 import org.fossify.musicplayer.models.Track
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -16,6 +18,37 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(application = SimpleMediaScannerTestApplication::class, sdk = [36])
 class AudioHelperPlaylistTest {
+    @Test
+    fun deletingPlaylistRemovesItsTracksButPreservesLibraryTracks() = runBlocking {
+        val context = RuntimeEnvironment.getApplication()
+        val audioHelper = AudioHelper(context)
+        val mediaStoreId = System.nanoTime()
+        val playlistTitle = "Playlist deletion test $mediaStoreId"
+        var playlistId: Int? = null
+
+        withContext(Dispatchers.IO) {
+            try {
+                playlistId = audioHelper.insertPlaylist(Playlist(0, playlistTitle)).toInt()
+                val libraryTrack = track(mediaStoreId)
+                val playlistTrack = libraryTrack.copy(id = 0, playListId = playlistId!!)
+                audioHelper.insertTracks(listOf(libraryTrack, playlistTrack))
+
+                audioHelper.deletePlaylists(arrayListOf(Playlist(playlistId!!, playlistTitle)))
+
+                assertEquals(null, context.playlistDAO.getPlaylistWithId(playlistId!!))
+                assertTrue(audioHelper.getPlaylistTracks(playlistId!!).isEmpty())
+                assertEquals(listOf(mediaStoreId), audioHelper.getPlaylistTracks(0).map { it.mediaStoreId })
+            } finally {
+                context.tracksDAO.removeTrack(mediaStoreId)
+                playlistId?.let { id ->
+                    context.playlistDAO.getPlaylistWithId(id)?.let {
+                        context.playlistDAO.deletePlaylists(listOf(it))
+                    }
+                }
+            }
+        }
+    }
+
     @Test
     fun removingTrackFromPlaylistPreservesLibraryTrack() = runBlocking {
         val context = RuntimeEnvironment.getApplication()

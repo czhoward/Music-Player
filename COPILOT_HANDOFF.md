@@ -22,6 +22,8 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Added a controlled API 36 Robolectric MediaStore scan test covering track, artist, album, genre, and all-tracks playlist persistence.
 - Extended the MediaStore scan regression test to verify excluded-folder tracks are omitted, manually removed tracks stay in the library but out of the all-tracks playlist, and scan callbacks preserve their two-stage order.
 - Added Room-backed `AudioHelper` coverage proving playlist-specific removal preserves the library track.
+- Added Room-backed playlist deletion coverage proving playlist rows and playlist tracks are removed without deleting the library copy.
+- Added queue persistence coverage proving reset replaces stale items and stores the selected current track and resume position.
 - Set the minimum supported Android version to Android 16/API 36, removed `WRITE_EXTERNAL_STORAGE` and the old storage-permission selector, and removed unreachable pre-Android-10/11 MediaStore, file-delete, filename-rename, and SAF fallback paths.
 - Upgraded Robolectric to 4.17 for API 36, aligned manifest-backed tests to API 36, and configured the Java 21 module opens required by Robolectric. The API-36 MediaStore scan fixture now uses a test provider compatible with Robolectric's `FakeMediaProvider`.
 - Removed five lint-baseline entries made obsolete by the API-36 floor.
@@ -136,6 +138,8 @@ Current uncommitted work on `main`:
 - [x] Add a controlled Robolectric MediaStore scan test for imported library metadata and playlist persistence.
 - [x] Verify scanner handling of excluded folders, manual all-tracks playlist removals, and two-stage callback order.
 - [x] Verify removing a track from a user playlist preserves its library entry.
+- [x] Verify deleting a playlist removes its playlist tracks while preserving library tracks.
+- [x] Verify queue reset replaces stale entries and persists the current track position.
 - [x] Cover `AudioHelper.getQueuedTracksLazily()` callback order, saved position, and worker-thread delivery.
 - [x] Refresh four stale lint-baseline records to match the current version-catalog path and lint messages.
 

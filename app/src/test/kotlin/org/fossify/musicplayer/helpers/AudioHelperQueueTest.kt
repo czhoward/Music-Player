@@ -1,6 +1,7 @@
 package org.fossify.musicplayer.helpers
 
 import android.os.Looper
+import org.fossify.musicplayer.extensions.queueDAO
 import org.fossify.musicplayer.models.QueueItem
 import org.fossify.musicplayer.models.Track
 import org.fossify.musicplayer.playback.library.MediaItemProviderTestApplication
@@ -20,6 +21,44 @@ import java.util.concurrent.atomic.AtomicBoolean
 @RunWith(RobolectricTestRunner::class)
 @Config(application = MediaItemProviderTestApplication::class, sdk = [36])
 class AudioHelperQueueTest {
+    @Test
+    fun resetQueueReplacesItemsAndPersistsCurrentPosition() {
+        val context = RuntimeEnvironment.getApplication()
+        val audioHelper = AudioHelper(context)
+        val oldTrackId = 301L
+        val firstTrackId = 302L
+        val currentTrackId = 303L
+        val items = listOf(
+            QueueItem(firstTrackId, 0, false, 0),
+            QueueItem(currentTrackId, 1, false, 0)
+        )
+        var queue: List<QueueItem> = emptyList()
+        var current: QueueItem? = null
+        var resetFailure: Throwable? = null
+        val resetComplete = CountDownLatch(1)
+
+        Thread {
+            try {
+                audioHelper.resetQueue(listOf(QueueItem(oldTrackId, 0, true, 45)))
+                audioHelper.resetQueue(items, currentTrackId, 12_999L)
+                queue = context.queueDAO.getAll()
+                current = context.queueDAO.getCurrent()
+            } catch (throwable: Throwable) {
+                resetFailure = throwable
+            } finally {
+                context.queueDAO.deleteAllItems()
+                resetComplete.countDown()
+            }
+        }.start()
+
+        assertTrue("Queue reset did not complete", resetComplete.await(10, TimeUnit.SECONDS))
+        resetFailure?.let { throw AssertionError("Could not reset the test queue", it) }
+
+        assertEquals(listOf(firstTrackId, currentTrackId), queue.map { it.trackId })
+        assertEquals(currentTrackId, current?.trackId)
+        assertEquals(12, current?.lastPosition)
+    }
+
     @Test
     fun lazyQueueLoadEmitsCurrentTrackThenFullQueueOffMain() {
         val context = RuntimeEnvironment.getApplication()
