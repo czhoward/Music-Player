@@ -122,6 +122,12 @@ abstract class BaseMusicAdapter<Type>(
         textView.setTextColor(textColor)
     }
 
+    protected fun removeItemsAtPositions(positions: List<Int>) {
+        val validPositions = ArrayList(positions.distinct().filter { it in items.indices }.sortedDescending())
+        removeSelectedItems(validPositions)
+        validPositions.forEach { items.removeAt(it) }
+    }
+
     open fun updateItems(newItems: ArrayList<Type>, highlightText: String = "", forceUpdate: Boolean = false) {
         if (forceUpdate || newItems.hashCode() != items.hashCode()) {
             items = newItems.clone() as ArrayList<Type>
@@ -208,13 +214,7 @@ abstract class BaseMusicAdapter<Type>(
             context.lifecycleScope.launch {
                 val tracks = withContext(Dispatchers.IO) { loadAndDeleteTracks(selectedItems) }
                 context.deleteTracks(tracks) {
-                    positions.sortDescending()
-                    removeSelectedItems(positions)
-                    positions.forEach {
-                        if (items.size > it) {
-                            items.removeAt(it)
-                        }
-                    }
+                    removeItemsAtPositions(positions)
                 }
             }
         }

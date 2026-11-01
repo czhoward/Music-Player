@@ -56,6 +56,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Consolidated shared track contextual-action dispatch across `TracksAdapter`, `TracksHeaderAdapter`, and `AlbumsTracksAdapter`; playlist-only removal remains track-list-specific.
 - Consolidated normalized title filtering for the Albums, Artists, Folders, Genres, and Playlists fragments in `MyViewPagerFragment`.
 - Preserved no-selection and unknown-action no-op behavior in shared adapter dispatch; normalized filtering avoids unsafe collection casts.
+- Consolidated selected-row removal in track and mixed album/track adapters, sorting and validating captured adapter positions before mutating the list.
 - Converted the artist-album load in `AlbumsActivity` from `ensureBackgroundThread` plus `runOnUiThread` to `lifecycleScope` and `Dispatchers.IO`, so work is canceled with the Activity.
 - Converted source-track loading in `TracksActivity` to lifecycle-owned IO coroutine work, keeping adapter updates and placeholder state on the main dispatcher.
 - Converted queue-to-playlist Room insertion in `QueueActivity` to lifecycle-owned IO work.
@@ -83,19 +84,17 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Ran the core JVM/Robolectric unit tests successfully. Split the long `SimpleMediaScannerTest` method so Detekt passes, and re-ran Detekt and core lint successfully.
 - Verified the final patch with `git diff --check`.
 - Revalidated this UI cleanup with core Kotlin compilation, Detekt, core lint, and the core JVM/Robolectric unit tests.
+- Revalidated shared selected-row removal with core Kotlin compilation, Detekt, core lint, and the core JVM/Robolectric unit tests.
 - Kept the app single-module: current playback, storage, and UI code share Android-specific APIs without a stable platform-independent domain boundary.
 
 ## Current Working Tree
 
 The earlier modernization work is committed. Current uncommitted changes:
 
+- `app/src/main/kotlin/org/fossify/musicplayer/adapters/AlbumsTracksAdapter.kt`
 - `app/src/main/kotlin/org/fossify/musicplayer/adapters/BaseMusicAdapter.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/fragments/AlbumsFragment.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/fragments/ArtistsFragment.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/fragments/FoldersFragment.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/fragments/GenresFragment.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/fragments/MyViewPagerFragment.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/fragments/PlaylistsFragment.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/adapters/TracksAdapter.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/adapters/TracksHeaderAdapter.kt`
 - `COPILOT_HANDOFF.md`
 
 ## Environment and Validation Notes
@@ -185,7 +184,7 @@ The earlier modernization work is committed. Current uncommitted changes:
 - [x] Review the manifest for obsolete permissions, exported declarations, and legacy compatibility flags.
 - [x] Consolidate shared category-row title, selection, and quantity-label binding in the base music adapter.
 - [x] Consolidate category-adapter deletion confirmation, IO lookup, and selected-row removal.
-- Reduce UI duplication in adapters, fragments, and activity code.
+- [x] Reduce UI duplication in adapter action dispatch/removal and shared fragment title filtering.
 - [x] Tighten the startup path so the app controller lifecycle is easier to reason about.
 
 ### P3: Dependency and Architecture Cleanup

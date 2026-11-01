@@ -92,11 +92,7 @@ class TracksHeaderAdapter(activity: SimpleActivity, items: ArrayList<ListItem>, 
             }
 
             context.deleteTracks(selectedTracks) {
-                positions.sortDescending()
-                removeSelectedItems(positions)
-                positions.forEach {
-                    items.removeAt(it)
-                }
+                removeItemsAtPositions(positions)
 
                 // finish activity if all tracks are deleted
                 if (items.none { it is Track }) {

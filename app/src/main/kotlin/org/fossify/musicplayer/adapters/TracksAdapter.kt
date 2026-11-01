@@ -131,11 +131,7 @@ class TracksAdapter(
             }
 
             EventBus.getDefault().post(Events.PlaylistsUpdated())
-            positions.sortDescending()
-            removeSelectedItems(positions)
-            positions.forEach {
-                items.removeAt(it)
-            }
+            removeItemsAtPositions(positions)
         }
     }
 
@@ -151,13 +147,7 @@ class TracksAdapter(
             }
 
             context.deleteTracks(selectedTracks) {
-                positions.sortDescending()
-                removeSelectedItems(positions)
-                positions.forEach {
-                    if (items.size > it) {
-                        items.removeAt(it)
-                    }
-                }
+                removeItemsAtPositions(positions)
 
                 finishActMode()
 

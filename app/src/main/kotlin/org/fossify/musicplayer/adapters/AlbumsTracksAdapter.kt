@@ -106,11 +106,7 @@ class AlbumsTracksAdapter(
                 }
 
                 context.deleteTracks(tracksToDelete) {
-                    positions.sortDescending()
-                    removeSelectedItems(positions)
-                    positions.forEach {
-                        items.removeAt(it)
-                    }
+                    removeItemsAtPositions(positions)
 
                     // finish activity if all tracks are deleted
                     if (items.none { it is Track }) {
