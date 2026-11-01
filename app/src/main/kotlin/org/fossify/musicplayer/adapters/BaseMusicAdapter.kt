@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.fossify.commons.activities.BaseSimpleActivity
 import org.fossify.commons.adapters.MyRecyclerViewAdapter
+import org.fossify.commons.dialogs.ConfirmationDialog
 import org.fossify.commons.extensions.highlightTextPart
 import org.fossify.commons.extensions.getProperPrimaryColor
 import org.fossify.commons.extensions.setupViewBackground
@@ -156,6 +157,29 @@ abstract class BaseMusicAdapter<Type>(
             val selectedTracks = withContext(Dispatchers.IO) { getAllSelectedTracks() }
             if (selectedTracks.isNotEmpty()) {
                 context.showTrackProperties(selectedTracks)
+            }
+        }
+    }
+
+    protected fun confirmDeleteSelectedItems(
+        getItemPosition: (Type) -> Int?,
+        loadAndDeleteTracks: suspend (List<Type>) -> List<Track>
+    ) {
+        ConfirmationDialog(context) {
+            val selectedItems = getSelectedItems()
+            val positions = ArrayList(selectedItems.mapNotNull(getItemPosition))
+
+            context.lifecycleScope.launch {
+                val tracks = withContext(Dispatchers.IO) { loadAndDeleteTracks(selectedItems) }
+                context.deleteTracks(tracks) {
+                    positions.sortDescending()
+                    removeSelectedItems(positions)
+                    positions.forEach {
+                        if (items.size > it) {
+                            items.removeAt(it)
+                        }
+                    }
+                }
             }
         }
     }

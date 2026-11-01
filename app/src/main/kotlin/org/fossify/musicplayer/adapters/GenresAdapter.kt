@@ -2,13 +2,8 @@ package org.fossify.musicplayer.adapters
 
 import android.view.View
 import android.view.ViewGroup
-import androidx.lifecycle.lifecycleScope
 import com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.fossify.commons.activities.BaseSimpleActivity
-import org.fossify.commons.dialogs.ConfirmationDialog
 import org.fossify.commons.views.MyRecyclerView
 import org.fossify.musicplayer.R
 import org.fossify.musicplayer.databinding.ItemGenreBinding
@@ -56,30 +51,14 @@ class GenresAdapter(activity: BaseSimpleActivity, items: ArrayList<Genre>, recyc
     }
 
     private fun askConfirmDelete() {
-        ConfirmationDialog(context) {
-            val selectedGenres = getSelectedItems()
-            val positions = ArrayList(selectedGenres.mapNotNull { genre ->
-                items.indexOfFirstOrNull { it.id == genre.id }
-            })
-
-            context.lifecycleScope.launch {
-                val tracks = withContext(Dispatchers.IO) {
-                    context.audioHelper.getGenreTracks(selectedGenres).also {
-                        context.audioHelper.deleteGenres(selectedGenres)
-                    }
-                }
-
-                context.deleteTracks(tracks) {
-                    positions.sortDescending()
-                    removeSelectedItems(positions)
-                    positions.forEach {
-                        if (items.size > it) {
-                            items.removeAt(it)
-                        }
-                    }
+        confirmDeleteSelectedItems(
+            getItemPosition = { genre -> items.indexOfFirstOrNull { it.id == genre.id } },
+            loadAndDeleteTracks = { selectedGenres ->
+                context.audioHelper.getGenreTracks(selectedGenres).also {
+                    context.audioHelper.deleteGenres(selectedGenres)
                 }
             }
-        }
+        )
     }
 
     private fun setupView(view: View, genre: Genre) {

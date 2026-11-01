@@ -3,13 +3,8 @@ package org.fossify.musicplayer.adapters
 import android.annotation.SuppressLint
 import android.view.View
 import android.view.ViewGroup
-import androidx.lifecycle.lifecycleScope
 import com.qtalk.recyclerviewfastscroller.RecyclerViewFastScroller
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.fossify.commons.activities.BaseSimpleActivity
-import org.fossify.commons.dialogs.ConfirmationDialog
 import org.fossify.commons.views.MyRecyclerView
 import org.fossify.musicplayer.R
 import org.fossify.musicplayer.databinding.ItemArtistBinding
@@ -58,29 +53,14 @@ class ArtistsAdapter(activity: BaseSimpleActivity, items: ArrayList<Artist>, rec
     }
 
     private fun askConfirmDelete() {
-        ConfirmationDialog(context) {
-            val selectedArtists = getSelectedItems()
-            val positions = ArrayList(selectedArtists.mapNotNull { artist ->
-                items.indexOfFirstOrNull { it.id == artist.id }
-            })
-
-            context.lifecycleScope.launch {
-                val tracks = withContext(Dispatchers.IO) {
-                    context.audioHelper.getArtistTracks(selectedArtists).also {
-                        context.audioHelper.deleteArtists(selectedArtists)
-                    }
-                }
-                context.deleteTracks(tracks) {
-                    positions.sortDescending()
-                    removeSelectedItems(positions)
-                    positions.forEach {
-                        if (items.size > it) {
-                            items.removeAt(it)
-                        }
-                    }
+        confirmDeleteSelectedItems(
+            getItemPosition = { artist -> items.indexOfFirstOrNull { it.id == artist.id } },
+            loadAndDeleteTracks = { selectedArtists ->
+                context.audioHelper.getArtistTracks(selectedArtists).also {
+                    context.audioHelper.deleteArtists(selectedArtists)
                 }
             }
-        }
+        )
     }
 
     private fun setupView(view: View, artist: Artist) {

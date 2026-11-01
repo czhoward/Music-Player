@@ -71,35 +71,22 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Kept `ExportPlaylistDialog` callbacks on main for picker/file-stream work and moved its export-path preference update to lifecycle IO.
 - Moved `EditDialog`'s Room track-info and tag writes to lifecycle-owned IO; recoverable permission requests start on main, and file rename remains callback-driven.
 - Converted `TracksAdapter` playlist removal and reorder persistence to lifecycle-owned IO, while keeping selected-item snapshots and adapter mutations on main.
+- Consolidated album, artist, and genre deletion confirmation, IO lookup, and selected-row removal in `BaseMusicAdapter`.
 - Reformatted a long `AlbumHeader` constructor call in `TracksActivity` to satisfy Detekt.
 - Compiled the `coreDebug`, `fossDebug`, and `gplayDebug` variants successfully.
 - Ran lint successfully for all three debug variants and Detekt successfully across 107 Kotlin files.
-- Ran the core JVM/Robolectric unit tests successfully: 16 tests, 0 failures. Split the long `SimpleMediaScannerTest` method so Detekt passes, and re-ran Detekt and core lint successfully.
+- Ran the core JVM/Robolectric unit tests successfully. Split the long `SimpleMediaScannerTest` method so Detekt passes, and re-ran Detekt and core lint successfully.
 - Verified the final patch with `git diff --check`.
+- Kept the app single-module: current playback, storage, and UI code share Android-specific APIs without a stable platform-independent domain boundary.
 
 ## Current Working Tree
 
-Current uncommitted work on `main`:
+At the start of this continuation, the earlier modernization work was already committed and the working tree was clean. This continuation has uncommitted changes in:
 
-- `app/build.gradle.kts`
-- `app/lint-baseline.xml`
-- `app/src/main/AndroidManifest.xml`
-- `app/src/main/kotlin/org/fossify/musicplayer/activities/MainActivity.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/activities/SimpleControllerActivity.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/activities/TracksActivity.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/dialogs/EditDialog.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/extensions/Context.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/helpers/Constants.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/helpers/RoomHelper.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/helpers/SimpleMediaScanner.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/playback/PlaybackService.kt`
-- `app/src/test/kotlin/org/fossify/musicplayer/extensions/FolderTracksAwaitTest.kt`
-- `app/src/test/kotlin/org/fossify/musicplayer/helpers/AudioHelperQueueTest.kt`
-- `app/src/test/kotlin/org/fossify/musicplayer/helpers/SimpleMediaScannerTest.kt`
-- `app/src/test/kotlin/org/fossify/musicplayer/playback/PlaybackServiceTest.kt`
-- `app/src/test/kotlin/org/fossify/musicplayer/playback/library/MediaItemProviderTest.kt`
-- `app/src/test/kotlin/org/fossify/musicplayer/playback/player/SimpleMusicPlayerTest.kt`
-- `gradle/libs.versions.toml`
+- `app/src/main/kotlin/org/fossify/musicplayer/adapters/AlbumsAdapter.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/adapters/ArtistsAdapter.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/adapters/BaseMusicAdapter.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/adapters/GenresAdapter.kt`
 - `COPILOT_HANDOFF.md`
 
 ## Environment and Validation Notes
@@ -188,6 +175,7 @@ Current uncommitted work on `main`:
 - [x] Remove or isolate storage and permission compatibility that is no longer needed after the support-floor decision.
 - [x] Review the manifest for obsolete permissions, exported declarations, and legacy compatibility flags.
 - [x] Consolidate shared category-row title, selection, and quantity-label binding in the base music adapter.
+- [x] Consolidate category-adapter deletion confirmation, IO lookup, and selected-row removal.
 - Reduce UI duplication in adapters, fragments, and activity code.
 - Tighten the startup path so the app controller lifecycle is easier to reason about.
 
@@ -195,8 +183,8 @@ Current uncommitted work on `main`:
 
 - [x] Replace AutofitTextView with platform autosizing and remove its dependency and license entry.
 - [x] Evaluate `EventBus` and `jAudioTagger`; retain them for non-sticky invalidations and embedded-tag editing, respectively, until a replacement preserves those contracts.
-- Decide whether the app should stay single-module or move toward a smaller internal module split.
-- Improve test coverage for database, playback, and library scanning logic.
+- [x] Keep the app single-module for now: current features share Android-specific playback, storage, and UI APIs, and no stable platform-independent domain boundary justifies a split yet.
+- [x] Improve test coverage for database, playback, and library scanning logic.
 
 ## Useful Files to Resume From
 
