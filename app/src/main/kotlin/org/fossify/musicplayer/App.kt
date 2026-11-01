@@ -7,21 +7,14 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import org.fossify.commons.extensions.checkUseEnglish
 import org.fossify.musicplayer.helpers.SimpleMediaController
 
-class App : Application() {
+class App : Application(), DefaultLifecycleObserver {
     override fun onCreate() {
-        super.onCreate()
+        super<Application>.onCreate()
         checkUseEnglish()
-        initController()
+        ProcessLifecycleOwner.get().lifecycle.addObserver(this)
     }
 
-    private fun initController() {
-        SimpleMediaController.getInstance(applicationContext).createControllerAsync()
-        ProcessLifecycleOwner.get().lifecycle.addObserver(
-            object : DefaultLifecycleObserver {
-                override fun onStop(owner: LifecycleOwner) {
-                    SimpleMediaController.destroyInstance()
-                }
-            }
-        )
+    override fun onStop(owner: LifecycleOwner) {
+        SimpleMediaController.destroyInstance()
     }
 }

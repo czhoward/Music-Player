@@ -51,6 +51,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Reviewed the deprecated shuffle-order workaround; AndroidX Media issue 325 remains open, so the tested ExoPlayer-specific implementation stays until a public `Player` API exists.
 - Replaced `SimpleMediaController`'s single-thread executor and blocking controller-future reads with completion listeners; callbacks now wait for an available connected controller, and releasing before first acquisition is safe.
 - Added `addListenerWithResult` and a regression test proving callbacks run only after their future completes.
+- Removed eager application-start controller acquisition. Activities and widget actions acquire the process-wide controller on demand; the Application observes process stop to release it.
 - Converted the artist-album load in `AlbumsActivity` from `ensureBackgroundThread` plus `runOnUiThread` to `lifecycleScope` and `Dispatchers.IO`, so work is canceled with the Activity.
 - Converted source-track loading in `TracksActivity` to lifecycle-owned IO coroutine work, keeping adapter updates and placeholder state on the main dispatcher.
 - Converted queue-to-playlist Room insertion in `QueueActivity` to lifecycle-owned IO work.
@@ -83,10 +84,7 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 
 At the start of this continuation, the earlier modernization work was already committed and the working tree was clean. This continuation has uncommitted changes in:
 
-- `app/src/main/kotlin/org/fossify/musicplayer/adapters/AlbumsAdapter.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/adapters/ArtistsAdapter.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/adapters/BaseMusicAdapter.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/adapters/GenresAdapter.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/App.kt`
 - `COPILOT_HANDOFF.md`
 
 ## Environment and Validation Notes
@@ -177,7 +175,7 @@ At the start of this continuation, the earlier modernization work was already co
 - [x] Consolidate shared category-row title, selection, and quantity-label binding in the base music adapter.
 - [x] Consolidate category-adapter deletion confirmation, IO lookup, and selected-row removal.
 - Reduce UI duplication in adapters, fragments, and activity code.
-- Tighten the startup path so the app controller lifecycle is easier to reason about.
+- [x] Tighten the startup path so the app controller lifecycle is easier to reason about.
 
 ### P3: Dependency and Architecture Cleanup
 
