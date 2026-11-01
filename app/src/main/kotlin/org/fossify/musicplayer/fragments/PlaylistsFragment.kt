@@ -87,10 +87,7 @@ class PlaylistsFragment(context: Context, attributeSet: AttributeSet) : MyViewPa
     }
 
     override fun onSearchQueryChanged(text: String) {
-        val normalizedText = text.normalizeString()
-        val filtered = playlists.filter {
-            it.title.normalizeString().contains(normalizedText, true)
-        }.toMutableList() as ArrayList<Playlist>
+        val filtered = filterItemsByTitle(playlists, text) { it.title }
         getAdapter()?.updateItems(filtered, text)
         binding.playlistsPlaceholder.beVisibleIf(filtered.isEmpty())
         binding.playlistsPlaceholder2.beVisibleIf(filtered.isEmpty())

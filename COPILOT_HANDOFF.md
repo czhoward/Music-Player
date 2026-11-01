@@ -54,6 +54,8 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Removed eager application-start controller acquisition. Activities and widget actions acquire the process-wide controller on demand; the Application observes process stop to release it.
 - Consolidated album, artist, and genre contextual-action dispatch in `BaseMusicAdapter`, preserving each adapter's category-specific delete flow.
 - Consolidated shared track contextual-action dispatch across `TracksAdapter`, `TracksHeaderAdapter`, and `AlbumsTracksAdapter`; playlist-only removal remains track-list-specific.
+- Consolidated normalized title filtering for the Albums, Artists, Folders, Genres, and Playlists fragments in `MyViewPagerFragment`.
+- Preserved no-selection and unknown-action no-op behavior in shared adapter dispatch; normalized filtering avoids unsafe collection casts.
 - Converted the artist-album load in `AlbumsActivity` from `ensureBackgroundThread` plus `runOnUiThread` to `lifecycleScope` and `Dispatchers.IO`, so work is canceled with the Activity.
 - Converted source-track loading in `TracksActivity` to lifecycle-owned IO coroutine work, keeping adapter updates and placeholder state on the main dispatcher.
 - Converted queue-to-playlist Room insertion in `QueueActivity` to lifecycle-owned IO work.
@@ -80,19 +82,20 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Ran lint successfully for all three debug variants and Detekt successfully across 107 Kotlin files.
 - Ran the core JVM/Robolectric unit tests successfully. Split the long `SimpleMediaScannerTest` method so Detekt passes, and re-ran Detekt and core lint successfully.
 - Verified the final patch with `git diff --check`.
+- Revalidated this UI cleanup with core Kotlin compilation, Detekt, core lint, and the core JVM/Robolectric unit tests.
 - Kept the app single-module: current playback, storage, and UI code share Android-specific APIs without a stable platform-independent domain boundary.
 
 ## Current Working Tree
 
-The earlier modernization work is committed. This continuation has uncommitted changes in:
+The earlier modernization work is committed. Current uncommitted changes:
 
-- `app/src/main/kotlin/org/fossify/musicplayer/adapters/AlbumsAdapter.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/adapters/AlbumsTracksAdapter.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/adapters/ArtistsAdapter.kt`
 - `app/src/main/kotlin/org/fossify/musicplayer/adapters/BaseMusicAdapter.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/adapters/GenresAdapter.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/adapters/TracksAdapter.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/adapters/TracksHeaderAdapter.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/fragments/AlbumsFragment.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/fragments/ArtistsFragment.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/fragments/FoldersFragment.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/fragments/GenresFragment.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/fragments/MyViewPagerFragment.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/fragments/PlaylistsFragment.kt`
 - `COPILOT_HANDOFF.md`
 
 ## Environment and Validation Notes

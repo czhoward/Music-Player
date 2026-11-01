@@ -63,9 +63,9 @@ abstract class BaseMusicAdapter<Type>(
 
     override fun onActionModeDestroyed() {}
 
-    protected fun handleCategoryAction(id: Int, deleteSelectedItems: () -> Unit): Boolean {
+    protected fun handleCategoryAction(id: Int, deleteSelectedItems: () -> Unit) {
         if (selectedKeys.isEmpty()) {
-            return true
+            return
         }
 
         when (id) {
@@ -74,18 +74,16 @@ abstract class BaseMusicAdapter<Type>(
             R.id.cab_delete -> deleteSelectedItems()
             R.id.cab_share -> shareFiles()
             R.id.cab_select_all -> selectAll()
-            else -> return false
         }
-        return true
     }
 
     protected fun handleTrackAction(
         id: Int,
         deleteSelectedTracks: () -> Unit,
         renameSelectedTrack: () -> Unit
-    ): Boolean {
+    ) {
         if (selectedKeys.isEmpty()) {
-            return true
+            return
         }
 
         when (id) {
@@ -97,9 +95,7 @@ abstract class BaseMusicAdapter<Type>(
             R.id.cab_rename -> renameSelectedTrack()
             R.id.cab_select_all -> selectAll()
             R.id.cab_play_next -> playNextInQueue()
-            else -> return false
         }
-        return true
     }
 
     open fun getSelectedTracks(): List<Track> = getSelectedItems().filterIsInstance<Track>().toList()
