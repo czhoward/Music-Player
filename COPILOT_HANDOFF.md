@@ -52,6 +52,8 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 - Replaced `SimpleMediaController`'s single-thread executor and blocking controller-future reads with completion listeners; callbacks now wait for an available connected controller, and releasing before first acquisition is safe.
 - Added `addListenerWithResult` and a regression test proving callbacks run only after their future completes.
 - Removed eager application-start controller acquisition. Activities and widget actions acquire the process-wide controller on demand; the Application observes process stop to release it.
+- Consolidated album, artist, and genre contextual-action dispatch in `BaseMusicAdapter`, preserving each adapter's category-specific delete flow.
+- Consolidated shared track contextual-action dispatch across `TracksAdapter`, `TracksHeaderAdapter`, and `AlbumsTracksAdapter`; playlist-only removal remains track-list-specific.
 - Converted the artist-album load in `AlbumsActivity` from `ensureBackgroundThread` plus `runOnUiThread` to `lifecycleScope` and `Dispatchers.IO`, so work is canceled with the Activity.
 - Converted source-track loading in `TracksActivity` to lifecycle-owned IO coroutine work, keeping adapter updates and placeholder state on the main dispatcher.
 - Converted queue-to-playlist Room insertion in `QueueActivity` to lifecycle-owned IO work.
@@ -82,9 +84,15 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 
 ## Current Working Tree
 
-At the start of this continuation, the earlier modernization work was already committed and the working tree was clean. This continuation has uncommitted changes in:
+The earlier modernization work is committed. This continuation has uncommitted changes in:
 
-- `app/src/main/kotlin/org/fossify/musicplayer/App.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/adapters/AlbumsAdapter.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/adapters/AlbumsTracksAdapter.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/adapters/ArtistsAdapter.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/adapters/BaseMusicAdapter.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/adapters/GenresAdapter.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/adapters/TracksAdapter.kt`
+- `app/src/main/kotlin/org/fossify/musicplayer/adapters/TracksHeaderAdapter.kt`
 - `COPILOT_HANDOFF.md`
 
 ## Environment and Validation Notes

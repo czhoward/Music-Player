@@ -21,6 +21,7 @@ import org.fossify.commons.extensions.highlightTextPart
 import org.fossify.commons.extensions.getProperPrimaryColor
 import org.fossify.commons.extensions.setupViewBackground
 import org.fossify.commons.views.MyRecyclerView
+import org.fossify.musicplayer.R
 import org.fossify.musicplayer.activities.SimpleControllerActivity
 import org.fossify.musicplayer.extensions.*
 import org.fossify.musicplayer.helpers.TagHelper
@@ -61,6 +62,45 @@ abstract class BaseMusicAdapter<Type>(
     override fun onActionModeCreated() {}
 
     override fun onActionModeDestroyed() {}
+
+    protected fun handleCategoryAction(id: Int, deleteSelectedItems: () -> Unit): Boolean {
+        if (selectedKeys.isEmpty()) {
+            return true
+        }
+
+        when (id) {
+            R.id.cab_add_to_playlist -> addToPlaylist()
+            R.id.cab_add_to_queue -> addToQueue()
+            R.id.cab_delete -> deleteSelectedItems()
+            R.id.cab_share -> shareFiles()
+            R.id.cab_select_all -> selectAll()
+            else -> return false
+        }
+        return true
+    }
+
+    protected fun handleTrackAction(
+        id: Int,
+        deleteSelectedTracks: () -> Unit,
+        renameSelectedTrack: () -> Unit
+    ): Boolean {
+        if (selectedKeys.isEmpty()) {
+            return true
+        }
+
+        when (id) {
+            R.id.cab_add_to_playlist -> addToPlaylist()
+            R.id.cab_add_to_queue -> addToQueue()
+            R.id.cab_properties -> showProperties()
+            R.id.cab_delete -> deleteSelectedTracks()
+            R.id.cab_share -> shareFiles()
+            R.id.cab_rename -> renameSelectedTrack()
+            R.id.cab_select_all -> selectAll()
+            R.id.cab_play_next -> playNextInQueue()
+            else -> return false
+        }
+        return true
+    }
 
     open fun getSelectedTracks(): List<Track> = getSelectedItems().filterIsInstance<Track>().toList()
 

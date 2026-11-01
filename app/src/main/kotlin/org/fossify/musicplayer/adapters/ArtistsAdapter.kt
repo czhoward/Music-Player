@@ -34,17 +34,7 @@ class ArtistsAdapter(activity: BaseSimpleActivity, items: ArrayList<Artist>, rec
     }
 
     override fun actionItemPressed(id: Int) {
-        if (selectedKeys.isEmpty()) {
-            return
-        }
-
-        when (id) {
-            R.id.cab_add_to_playlist -> addToPlaylist()
-            R.id.cab_add_to_queue -> addToQueue()
-            R.id.cab_delete -> askConfirmDelete()
-            R.id.cab_share -> shareFiles()
-            R.id.cab_select_all -> selectAll()
-        }
+        handleCategoryAction(id, ::askConfirmDelete)
     }
 
     override fun getSelectedTracks(): ArrayList<Track> {
