@@ -89,28 +89,22 @@ The current scope is broader than bug fixes alone. A support-floor change is acc
 
 ## Current Working Tree
 
-The earlier modernization work is committed. Current uncommitted changes:
-
-- `app/src/main/kotlin/org/fossify/musicplayer/adapters/AlbumsTracksAdapter.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/adapters/BaseMusicAdapter.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/adapters/TracksAdapter.kt`
-- `app/src/main/kotlin/org/fossify/musicplayer/adapters/TracksHeaderAdapter.kt`
-- `COPILOT_HANDOFF.md`
+The earlier modernization work is committed. Check `git status` for subsequent changes.
 
 ## Environment and Validation Notes
 
-- Java 17 is available at `/usr/lib/jvm/java-17-openjdk-amd64`.
-- Robolectric 4.17 requires Java 21 to test API 36. JDK 21 (Temurin) is installed at `/home/vagrant/jdks/jdk-21.0.12.1+1` (`apt install openjdk-21-jdk` needs interactive sudo and failed); use it as `JAVA_HOME` for `:app:testCoreDebugUnitTest`, and Java 17 for other tasks. Module-open test flags are configured in `app/build.gradle.kts`.
-- ripgrep (rg) is now available at `/usr/bin/rg`.
-- `ANDROID_HOME` is `/home/vagrant/android-sdk`; API 36 and Build-Tools 36 were installed there. `local.properties` is intentionally absent.
-- The host now has 3.8 GiB RAM (about 2.8 GiB available at last check). Earlier combined builds OOM-killed daemons when the host had 1.9 GiB. Serial builds with a 1 GiB Gradle heap and Kotlin compilation in-process have passed; the repository default heap is 8 GiB.
+- JDK 21 is installed at `/usr/lib/jvm/java-21-openjdk-amd64`; set `JAVA_HOME` to it for builds and API 36 Robolectric tests. The default `java` is JDK 25. Module-open test flags are configured in `app/build.gradle.kts`.
+- `ANDROID_HOME` is `/home/colin/android-sdk`; the API 36 platform, Build-Tools 36, emulator, and an API 36 x86_64 system image are installed.
+- The physical host has ample RAM and disk space. The `music-api36` AVD boots with KVM; if an existing session has not picked up `kvm` group membership, start a fresh login session or run the emulator from a `newgrp kvm` shell. A headless launch can use `-no-window -gpu swiftshader_indirect -no-audio -no-snapshot-save -accel on`.
+- On 2026-11-06, `:app:assembleCoreDebug` succeeded with JDK 21, and the debug APK installed and launched on `music-api36`.
 - Lint passes for all three debug variants with the refreshed baseline; core reports 13 warnings and FOSS/GPlay report 15 each. The baseline filters 5 errors and 194 warnings, with no stale entries.
-- The tests cover list movement, player-level next-item insertion/reordering including shuffle order, future and folder-callback completion, sleep-timer state, provider root construction and empty/seeded-Room reloads, service `onCreate()` initialization, fallback notification delivery, and a controlled populated MediaStore scan. A device-backed scan and Android OS enforcement of foreground-service restrictions remain untested. The folder bridge ignores callbacks after cancellation, but the external rescan itself is not cancellable.
-- The installed `testDevice` AVD still cannot boot in this environment: the root disk has insufficient space for its configured userdata, the `/vagrant` mount is CIFS and rejects QEMU qcow2 writes, and this user lacks `/dev/kvm` access.
+- The tests cover list movement, player-level next-item insertion/reordering including shuffle order, future and folder-callback completion, sleep-timer state, provider root construction and empty/seeded-Room reloads, service `onCreate()` initialization, fallback notification delivery, and a controlled populated MediaStore scan. The folder bridge ignores callbacks after cancellation, but the external rescan itself is not cancellable.
+- On 2026-11-06, an API 36 emulator smoke test granted audio and notification permissions, indexed a generated WAV, and started playback in the app. Android reported the playback service foreground with media playback type and a media notification; playback remained foreground after Home, and media-key pause and resume worked while the launcher was visible. A second indexed WAV was added by the app's rescan (All tracks increased from one to two). No app crash was observed.
+- That smoke test did **not** exercise Android denying a foreground-service start: playback entered the foreground while the app was visible, and the background pause/resume reused that foreground service. It also did **not** verify the manual filesystem fallback: the emulator indexed the second `adb push` before the app rescan.
 
 ## Recommended Next Steps
 
-1. Cover Android system-level foreground-service behavior on a device or emulator with enough disk space; controlled MediaStore scan coverage is now in Robolectric.
+1. Add repeatable device-level coverage for Android denying a background foreground-service start and verify the resulting fallback notification. The successful foreground and background media-key smoke test above does not cover this restriction.
 2. Retain the generic Context artwork fallback for callers without an Activity owner and the tested `AudioHelper.getQueuedTracksLazily()` callback contract; revisit only if their ownership model changes.
 3. EventBus audit complete: retain the non-sticky one-shot invalidations for now. `MainActivity` is the sole subscriber, and replacing these with a replaying state-holder would change delivery semantics; recurring timer state already uses `StateFlow`.
 4. Retain the tested ExoPlayer shuffle-order workaround until AndroidX Media exposes shuffle-order control through `Player` (issue 325 remains open).
@@ -210,9 +204,9 @@ The earlier modernization work is committed. Current uncommitted changes:
 ## Suggested Resume Command Sequence
 
 ```bash
-export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 export PATH="$JAVA_HOME/bin:$PATH"
 ./gradlew --no-daemon --max-workers=1 -Pkotlin.compiler.execution.strategy=in-process -Dorg.gradle.jvmargs='-Xmx1024m -Dfile.encoding=UTF-8' :app:compileCoreDebugKotlin
 ```
 
-For analysis, run one task at a time with the same options, for example `:app:detekt` or `:app:lintCoreDebug`. The SDK is available at `/home/vagrant/android-sdk`; set `ANDROID_HOME` to that path if it is not already exported in the shell.
+For analysis, run one task at a time with the same options, for example `:app:detekt` or `:app:lintCoreDebug`. The SDK is available at `/home/colin/android-sdk`; set `ANDROID_HOME` to that path if it is not already exported in the shell.
