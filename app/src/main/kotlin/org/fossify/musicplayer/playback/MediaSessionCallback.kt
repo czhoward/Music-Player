@@ -2,6 +2,8 @@ package org.fossify.musicplayer.playback
 
 import android.os.Bundle
 import android.os.ConditionVariable
+import android.os.Handler
+import android.os.Looper
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.LibraryResult
@@ -15,11 +17,15 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import com.google.common.util.concurrent.SettableFuture
+import org.fossify.musicplayer.BuildConfig
 import org.fossify.musicplayer.extensions.addRemainingMediaItems
 import org.fossify.musicplayer.helpers.EXTRA_NEXT_MEDIA_ID
 import org.fossify.musicplayer.helpers.EXTRA_SHUFFLE_INDICES
 import org.fossify.musicplayer.playback.player.updatePlaybackState
 import java.util.concurrent.Executors
+
+private const val TEST_DIRECT_PLAY_COMMAND = "org.fossify.musicplayer.DEBUG_PLAY_DIRECT"
+private const val TEST_DIRECT_PLAY_DELAY_MS = 15_000L
 
 @UnstableApi
 internal fun PlaybackService.getMediaSessionCallback() = object : MediaLibrarySession.Callback {
@@ -48,6 +54,9 @@ internal fun PlaybackService.getMediaSessionCallback() = object : MediaLibrarySe
         for (command in customCommands) {
             availableSessionCommands.add(command)
         }
+        if (BuildConfig.DEBUG) {
+            availableSessionCommands.add(SessionCommand(TEST_DIRECT_PLAY_COMMAND, Bundle.EMPTY))
+        }
 
         return MediaSession.ConnectionResult.accept(
             availableSessionCommands.build(),
@@ -68,6 +77,13 @@ internal fun PlaybackService.getMediaSessionCallback() = object : MediaLibrarySe
         customCommand: SessionCommand,
         args: Bundle
     ): ListenableFuture<SessionResult> {
+        if (BuildConfig.DEBUG && customCommand.customAction == TEST_DIRECT_PLAY_COMMAND) {
+            Handler(Looper.getMainLooper()).postDelayed({
+                withPlayer { play() }
+            }, TEST_DIRECT_PLAY_DELAY_MS)
+            return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+        }
+
         val command = CustomCommands.fromSessionCommand(customCommand)
             ?: return Futures.immediateFuture(SessionResult(SessionError.ERROR_BAD_VALUE))
 
